@@ -288,3 +288,26 @@ html[data-theme="dark"] body button:disabled,html[data-theme="dark"] body button
 html[data-theme="dark"] body button:disabled svg,html[data-theme="dark"] body button[disabled] svg{color:#93a0b0!important}
 html[data-theme] body button:disabled::before,html[data-theme] body button[disabled]::before{display:none!important}
 :root,[data-theme="dark"]{--b3-blue-h1:#1576d2}
+
+/* --- Back is now rendered only when a real previous step exists (checkout
+   step 1 -> 0), so it must be visible rather than blanket-hidden. The close
+   button keeps its right edge whether or not Back is present. --- */
+.modal-nav .modal-back{display:inline-flex!important;align-items:center;gap:6px;height:42px;min-height:42px!important;padding:0 15px!important;border-radius:999px!important;font-weight:700;font-size:13px}
+.modal-nav .modal-back svg{width:17px;height:17px}
+.modal-nav .close{margin-left:auto!important}
+
+/* --- FIX: the 3D layer above lists .guide-fab in a `position:relative` rule
+   (it needs a positioned box for the ::before sheen), which silently beat the
+   base `position:fixed` and dropped the assistant out of fixed positioning
+   into normal flow at the foot of .app on desktop. Re-assert fixed and give it
+   one anchor per breakpoint instead of the eight the patch layers declare. --- */
+.guide-fab{position:fixed!important;z-index:72!important}
+@media(min-width:681px){.guide-fab{right:24px!important;bottom:24px!important;top:auto!important;left:auto!important}}
+@media(max-width:680px){.guide-fab{right:12px!important;bottom:calc(96px + env(safe-area-inset-bottom))!important;top:auto!important;left:auto!important}}
+
+/* --- FIX: in light mode --b3-face-h1 was #fff, identical to the rest face, so
+   hovering a header control changed almost nothing and its silhouette sat at
+   1.04:1 against the rgb(251,251,252) header. Tint the hover face and firm up
+   both edge rings so the button reads as a distinct object. --- */
+:root{--b3-face-h1:#e6f1ff;--b3-face-h2:#c8dffa;--b3-edge:rgba(19,44,74,.55);--b3-edge-h:rgba(10,95,180,.72)}
+:root{--b3-glass-h:0 2px 3px rgba(16,42,74,.1),0 10px 18px -6px var(--b3-amb-h),0 24px 44px -14px var(--b3-amb-h),inset 0 1px 0 rgba(255,255,255,.9),inset 0 -3px 0 var(--b3-lip),inset 0 0 0 1.5px var(--b3-edge-h)}

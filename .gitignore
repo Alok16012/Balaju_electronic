@@ -8,3 +8,4 @@ qa/
 qa2/
 qa3/
 qa4/
+.claude/settings.local.json
