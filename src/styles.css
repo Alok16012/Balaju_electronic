@@ -145,3 +145,146 @@ button{isolation:isolate;-webkit-tap-highlight-color:transparent}button svg,a sv
 button:focus-visible,a:focus-visible{outline:3px solid color-mix(in srgb,var(--control-blue-hi) 72%,white)!important;outline-offset:3px!important;box-shadow:0 0 0 6px rgba(19,133,226,.16),var(--glass-shadow)!important}
 @media(max-width:680px){button,.mobile-dock a{min-height:44px}.product .add{min-height:44px!important}.mobile-dock{background:linear-gradient(145deg,rgba(255,255,255,.87),rgba(221,235,249,.74))!important;border-color:rgba(255,255,255,.94)!important;box-shadow:0 22px 55px rgba(8,38,75,.28),inset 0 1px 0 #fff,inset 0 -1px 0 rgba(34,77,123,.15)!important;backdrop-filter:blur(28px) saturate(185%);-webkit-backdrop-filter:blur(28px) saturate(185%)}[data-theme="dark"] .mobile-dock{background:linear-gradient(145deg,rgba(42,54,69,.91),rgba(14,20,29,.88))!important;border-color:rgba(130,166,199,.28)!important;box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14)!important}.mobile-dock>a.active .dock-icon,.mobile-dock>button.active .dock-icon{filter:drop-shadow(0 4px 7px rgba(0,113,227,.25));transform:translateY(-1px)}.pdp-actions .primary,.pdp-actions .secondary{min-height:50px}.filter-row button{min-height:44px!important}.modal-nav button{min-width:44px}}
 @media(prefers-reduced-motion:reduce){button,button:before,button svg,a,a svg,.category,.product,.shelf-card{transition:none!important;animation:none!important}}
+
+/* ================= FINAL LAYER — 21st.dev-inspired dimensional control system ================= */
+:root{--b3-r:14px;--b3-ease:cubic-bezier(.22,1,.36,1);--b3-blue-1:#1272cf;--b3-blue-2:#0b62b8;--b3-blue-3:#084f9b;--b3-blue-h1:#1a7fdd;--b3-blue-h2:#0f6ac4;--b3-blue-h3:#0a58a8;--b3-face-1:#fff;--b3-face-2:#e9eff8;--b3-face-h1:#fff;--b3-face-h2:#dceafb;--b3-ink:#17293e;--b3-ink-h:#0a5fb4;--b3-edge:rgba(19,44,74,.17);--b3-edge-h:rgba(12,86,164,.32);--b3-spec:rgba(255,255,255,.96);--b3-lip:rgba(15,40,70,.14);--b3-amb:rgba(16,42,74,.14);--b3-amb-h:rgba(10,60,120,.22);--b3-sheen:rgba(255,255,255,.55);--b3-glass:0 1px 1px rgba(16,42,74,.05),0 3px 6px -2px var(--b3-amb),0 12px 24px -10px var(--b3-amb),inset 0 1px 0 var(--b3-spec),inset 0 -2px 0 var(--b3-lip),inset 0 0 0 1px var(--b3-edge);--b3-glass-h:0 2px 3px rgba(16,42,74,.07),0 10px 18px -6px var(--b3-amb-h),0 24px 44px -14px var(--b3-amb-h),inset 0 1px 0 #fff,inset 0 -3px 0 var(--b3-lip),inset 0 0 0 1px var(--b3-edge-h);--b3-glass-p:0 1px 2px rgba(16,42,74,.12),inset 0 3px 6px rgba(16,42,74,.19),inset 0 0 0 1px var(--b3-edge);--b3-solid:0 1px 1px rgba(4,32,64,.3),0 5px 10px -3px rgba(6,60,116,.4),0 16px 30px -12px rgba(6,60,116,.5),inset 0 1px 0 rgba(255,255,255,.36),inset 0 -3px 0 rgba(3,38,76,.36),inset 0 0 0 1px rgba(5,50,98,.6);--b3-solid-h:0 2px 3px rgba(4,32,64,.32),0 12px 22px -6px rgba(6,66,128,.48),0 26px 46px -16px rgba(6,66,128,.6),inset 0 1px 0 rgba(255,255,255,.46),inset 0 -4px 0 rgba(3,38,76,.36),inset 0 0 0 1px rgba(5,54,106,.66);--b3-solid-p:0 1px 2px rgba(4,32,64,.3),inset 0 3px 7px rgba(2,28,58,.42),inset 0 0 0 1px rgba(5,50,98,.6)}
+[data-theme="dark"]{--b3-face-1:#2b3644;--b3-face-2:#1e2733;--b3-face-h1:#36455a;--b3-face-h2:#26313f;--b3-ink:#e8f1fb;--b3-ink-h:#8ec8ff;--b3-edge:rgba(148,183,219,.24);--b3-edge-h:rgba(126,190,255,.46);--b3-spec:rgba(255,255,255,.16);--b3-lip:rgba(0,0,0,.42);--b3-amb:rgba(0,0,0,.5);--b3-amb-h:rgba(0,0,0,.6);--b3-sheen:rgba(190,225,255,.3);--b3-glass:0 1px 1px rgba(0,0,0,.4),0 4px 8px -2px var(--b3-amb),0 14px 28px -12px var(--b3-amb),inset 0 1px 0 var(--b3-spec),inset 0 -2px 0 var(--b3-lip),inset 0 0 0 1px var(--b3-edge);--b3-glass-h:0 2px 3px rgba(0,0,0,.45),0 12px 20px -6px var(--b3-amb-h),0 28px 48px -16px var(--b3-amb-h),inset 0 1px 0 rgba(255,255,255,.24),inset 0 -3px 0 var(--b3-lip),inset 0 0 0 1px var(--b3-edge-h);--b3-glass-p:0 1px 2px rgba(0,0,0,.4),inset 0 3px 6px rgba(0,0,0,.5),inset 0 0 0 1px var(--b3-edge)}
+
+/* --- tier 1: solid (primary action) --- */
+.primary,.trade-primary,.closing-cta button,.ink-button,.coupon-field button,.composer button,.pagination button,.guide-fab,.filter-row button.active,.mode button.active{position:relative;isolation:isolate;overflow:hidden;border:0!important;background-image:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-2) 55%,var(--b3-blue-3) 100%)!important;background-color:var(--b3-blue-2)!important;color:#fff!important;text-shadow:0 1px 1px rgba(2,28,58,.4);box-shadow:var(--b3-solid)!important;transition:transform .24s var(--b3-ease),box-shadow .24s var(--b3-ease),background-image .24s var(--b3-ease),filter .24s var(--b3-ease)!important;will-change:transform}
+.primary svg,.trade-primary svg,.closing-cta button svg,.ink-button svg,.guide-fab svg,.pagination button svg{filter:drop-shadow(0 1px 1px rgba(2,28,58,.35));transition:transform .3s var(--b3-ease)}
+
+/* --- tier 2: glass (secondary / chips / cards) --- */
+.secondary,.add,.payment-link,.catalog-actions button,.modal-back,.payment-options button,.filter-row button,.prompts button,.sale-banner button,.quick,.qr-btn,.scroll-track>button{position:relative;isolation:isolate;overflow:hidden;border:0!important;background-image:linear-gradient(178deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%)!important;background-color:var(--b3-face-1)!important;color:var(--b3-ink)!important;box-shadow:var(--b3-glass)!important;-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);transition:transform .24s var(--b3-ease),box-shadow .24s var(--b3-ease),background-image .24s var(--b3-ease),color .18s var(--b3-ease)!important;will-change:transform}
+
+/* --- tier 3: icon pads --- */
+.close,.heart,.qty button,.search-clear,.actions>button:not(.account),.hero-controls>button,.shelf-head>div:last-child button,.modal .close{position:relative;isolation:isolate;border:0!important;background-image:linear-gradient(178deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%)!important;background-color:var(--b3-face-1)!important;color:var(--b3-ink)!important;box-shadow:var(--b3-glass)!important;transition:transform .24s var(--b3-ease),box-shadow .24s var(--b3-ease),background-image .24s var(--b3-ease),color .18s var(--b3-ease)!important}
+.close svg,.heart svg,.qty button svg,.search-clear svg,.actions>button svg,.hero-controls>button svg{transition:transform .3s var(--b3-ease)}
+
+/* --- specular sheen sweep --- */
+.primary::before,.trade-primary::before,.closing-cta button::before,.ink-button::before,.guide-fab::before,.secondary::before,.add::before,.payment-link::before,.catalog-actions button::before,.modal-back::before,.payment-options button::before,.qr-btn::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background:linear-gradient(112deg,transparent 32%,var(--b3-sheen) 50%,transparent 68%);transform:translateX(-115%);opacity:0;transition:transform .62s var(--b3-ease),opacity .3s linear}
+
+/* --- hover (fine pointers only) --- */
+@media(hover:hover) and (pointer:fine){
+.primary:hover:not(:disabled),.trade-primary:hover:not(:disabled),.closing-cta button:hover:not(:disabled),.ink-button:hover:not(:disabled),.coupon-field button:hover:not(:disabled),.composer button:hover:not(:disabled),.pagination button:hover:not(:disabled),.guide-fab:hover:not(:disabled),.filter-row button.active:hover,.mode button.active:hover{background-image:linear-gradient(180deg,var(--b3-blue-h1) 0%,var(--b3-blue-h2) 55%,var(--b3-blue-h3) 100%)!important;box-shadow:var(--b3-solid-h)!important;transform:translateY(-3px)!important}
+.secondary:hover:not(:disabled),.add:hover:not(:disabled),.payment-link:hover,.catalog-actions button:hover:not(:disabled),.modal-back:hover,.payment-options button:hover:not(:disabled),.filter-row button:not(.active):hover,.prompts button:hover,.sale-banner button:hover,.quick:hover,.qr-btn:hover,.scroll-track>button:hover{background-image:linear-gradient(178deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%)!important;color:var(--b3-ink-h)!important;box-shadow:var(--b3-glass-h)!important;transform:translateY(-3px)!important}
+.close:hover,.heart:hover,.qty button:hover:not(:disabled),.search-clear:hover,.actions>button:not(.account):hover,.hero-controls>button:hover,.shelf-head>div:last-child button:hover:not(:disabled){background-image:linear-gradient(178deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%)!important;color:var(--b3-ink-h)!important;box-shadow:var(--b3-glass-h)!important;transform:translateY(-2px)!important}
+.primary:hover::before,.trade-primary:hover::before,.closing-cta button:hover::before,.ink-button:hover::before,.guide-fab:hover::before,.secondary:hover::before,.add:hover::before,.payment-link:hover::before,.catalog-actions button:hover::before,.modal-back:hover::before,.payment-options button:hover::before,.qr-btn:hover::before{transform:translateX(115%);opacity:1}
+.primary:hover svg,.ink-button:hover svg,.trade-primary:hover svg,.closing-cta button:hover svg,.guide-fab:hover svg{transform:translateX(4px)}
+.close:hover svg{transform:rotate(90deg)}
+.heart:hover svg{transform:scale(1.14) rotate(-8deg)}
+.qty button:hover svg{transform:scale(1.16)}
+.add:hover svg{transform:scale(1.12) rotate(-6deg)}
+}
+
+/* --- press physics: the riser collapses --- */
+.primary:active:not(:disabled),.trade-primary:active:not(:disabled),.closing-cta button:active:not(:disabled),.ink-button:active:not(:disabled),.coupon-field button:active:not(:disabled),.composer button:active:not(:disabled),.pagination button:active:not(:disabled),.guide-fab:active:not(:disabled),.mode button.active:active{transform:translateY(2px) scale(.985)!important;box-shadow:var(--b3-solid-p)!important;transition-duration:.07s!important}
+.secondary:active:not(:disabled),.add:active:not(:disabled),.payment-link:active,.catalog-actions button:active:not(:disabled),.modal-back:active,.payment-options button:active:not(:disabled),.filter-row button:active,.prompts button:active,.sale-banner button:active,.quick:active,.qr-btn:active,.scroll-track>button:active,.close:active,.heart:active,.qty button:active:not(:disabled),.search-clear:active,.actions>button:active,.hero-controls>button:active{transform:translateY(2px) scale(.985)!important;box-shadow:var(--b3-glass-p)!important;transition-duration:.07s!important}
+
+/* --- disabled --- */
+button:disabled{opacity:.42!important;box-shadow:0 1px 2px rgba(16,42,74,.1),inset 0 0 0 1px var(--b3-edge)!important;transform:none!important;cursor:not-allowed!important;filter:saturate(.3)}
+button:disabled::before{display:none}
+
+/* --- contrast corrections --- */
+.trade-secondary,[data-theme="dark"] .trade-secondary{color:#dbe7f3!important;border-bottom-color:rgba(219,231,243,.4)!important}
+.trade-secondary:hover{color:#8fd4ff!important;border-bottom-color:#8fd4ff!important}
+.search kbd{background:#eef2f8!important;color:#5b6879!important;border-color:#c9d3e0!important}
+[data-theme="dark"] .search kbd{background:#232d3a!important;color:#c9d4df!important;border-color:#44515f!important}
+.heart.saved{background-image:linear-gradient(180deg,#ff8a6f,#ef5f42 60%,#d94b30)!important;color:#fff!important;text-shadow:0 1px 1px rgba(90,20,4,.4)}
+.mode button:not(.active){color:#3f4855!important}
+[data-theme="dark"] .mode button:not(.active){color:#b9c6d4!important}
+[data-theme="dark"] .quick,[data-theme="dark"] .sale-banner button{color:var(--b3-ink)!important}
+
+/* --- hero pagination: real pills, not stretched blocks --- */
+.hero-controls>div{display:inline-flex;align-items:center;gap:2px;padding:5px 9px;border-radius:999px;background:rgba(9,20,34,.46);-webkit-backdrop-filter:blur(12px) saturate(150%);backdrop-filter:blur(12px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.12),0 6px 16px rgba(0,0,0,.28)}
+.hero-controls>div>button{width:26px;height:26px;min-height:26px!important;min-width:0!important;padding:0!important;border:0!important;background:none!important;background-image:none!important;box-shadow:none!important;border-radius:999px!important;display:grid!important;place-items:center;cursor:pointer;transform:none!important}
+.hero-controls>div>button::after{content:"";display:block;width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(0,0,0,.4);transition:width .34s var(--b3-ease),background .34s var(--b3-ease)}
+.hero-controls>div>button.active::after{width:20px;background:linear-gradient(90deg,#61d7ff,#fff)}
+.hero-controls>div>button:hover::after{background:rgba(255,255,255,.85)}
+
+/* --- text-style controls stay flat (never 3D) --- */
+.footer-links button,.shelf-name,.cart-empty button,.mobile-dock button:not(.dock-sale),.mobile-dock a,.trade-secondary,.section-head a{background-image:none!important;box-shadow:none!important;text-shadow:none!important}
+.mobile-dock .dock-sale{background-image:linear-gradient(145deg,#0f6845,#b8560c)!important;color:#fff!important;text-shadow:0 1px 2px rgba(20,60,40,.45)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 0 -3px 0 rgba(10,52,34,.3),0 13px 27px rgba(20,80,54,.4)!important}
+.mobile-dock .dock-sale:active{transform:translateY(2px) scale(.96)!important;box-shadow:inset 0 3px 7px rgba(10,52,34,.42)!important}
+
+/* --- mobile --- */
+@media(max-width:680px){
+:root{--b3-r:12px}
+.primary,.secondary,.add,.trade-primary,.closing-cta button,.ink-button,.payment-link,.catalog-actions button,.payment-options button,.modal-back{min-height:48px!important}
+.hero-controls>div>button{width:34px;height:44px;min-height:44px!important}
+.guide,.cart-drawer{width:100%!important;max-width:100vw!important;right:0!important}
+.guide .composer,.cart-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+.primary:active:not(:disabled),.secondary:active:not(:disabled),.add:active:not(:disabled),.trade-primary:active:not(:disabled),.closing-cta button:active:not(:disabled),.ink-button:active:not(:disabled),.payment-options button:active,.filter-row button:active,.close:active,.heart:active,.qty button:active{transform:translateY(1px) scale(.97)!important}
+}
+
+/* --- focus ring above everything --- */
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px solid #0a6fd0!important;outline-offset:3px!important;box-shadow:0 0 0 6px rgba(10,111,208,.2),var(--b3-glass)!important}
+[data-theme="dark"] button:focus-visible,[data-theme="dark"] a:focus-visible{outline-color:#7cc4ff!important;box-shadow:0 0 0 6px rgba(124,196,255,.22),var(--b3-glass)!important}
+
+/* --- reduced motion --- */
+@media(prefers-reduced-motion:reduce){button,button::before,button svg,a,a svg,.category,.product,.shelf-card,.hero-controls>div>button::after{transition:none!important;animation:none!important}button:hover,a:hover{transform:none!important}}
+
+/* --- .quick is centred via transform; give it its own lift so translate(-50%) survives --- */
+.quick{transform:translate(-50%,0)!important}
+@media(hover:hover) and (pointer:fine){.product-visual:hover .quick,.quick:hover{transform:translate(-50%,-3px)!important}}
+.quick:active{transform:translate(-50%,2px) scale(.985)!important}
+
+/* ---- dark-mode counterparts (must match the [data-theme] specificity of the older layers) ---- */
+[data-theme="dark"] .primary,[data-theme="dark"] .trade-primary,[data-theme="dark"] .closing-cta button,[data-theme="dark"] .ink-button,[data-theme="dark"] .coupon-field button,[data-theme="dark"] .composer button,[data-theme="dark"] .pagination button,[data-theme="dark"] .guide-fab,[data-theme="dark"] .filter-row button.active,[data-theme="dark"] .mode button.active{background-image:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-2) 55%,var(--b3-blue-3) 100%)!important;background-color:var(--b3-blue-2)!important;color:#fff!important;border:0!important;box-shadow:var(--b3-solid)!important}
+[data-theme="dark"] .secondary,[data-theme="dark"] .add,[data-theme="dark"] .payment-link,[data-theme="dark"] .catalog-actions button,[data-theme="dark"] .modal-back,[data-theme="dark"] .payment-options button,[data-theme="dark"] .filter-row button:not(.active),[data-theme="dark"] .prompts button,[data-theme="dark"] .sale-banner button,[data-theme="dark"] .quick,[data-theme="dark"] .qr-btn,[data-theme="dark"] .scroll-track>button,[data-theme="dark"] .close,[data-theme="dark"] .heart:not(.saved),[data-theme="dark"] .qty button,[data-theme="dark"] .search-clear,[data-theme="dark"] .actions>button:not(.account),[data-theme="dark"] .hero-controls>button,[data-theme="dark"] .shelf-head>div:last-child button,[data-theme="dark"] .modal .close{background-image:linear-gradient(178deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%)!important;background-color:var(--b3-face-1)!important;color:var(--b3-ink)!important;border:0!important;box-shadow:var(--b3-glass)!important}
+@media(hover:hover) and (pointer:fine){
+[data-theme="dark"] .primary:hover:not(:disabled),[data-theme="dark"] .trade-primary:hover:not(:disabled),[data-theme="dark"] .closing-cta button:hover:not(:disabled),[data-theme="dark"] .ink-button:hover:not(:disabled),[data-theme="dark"] .coupon-field button:hover:not(:disabled),[data-theme="dark"] .composer button:hover:not(:disabled),[data-theme="dark"] .pagination button:hover:not(:disabled),[data-theme="dark"] .guide-fab:hover{background-image:linear-gradient(180deg,var(--b3-blue-h1) 0%,var(--b3-blue-h2) 55%,var(--b3-blue-h3) 100%)!important;box-shadow:var(--b3-solid-h)!important;transform:translateY(-3px)!important}
+[data-theme="dark"] .secondary:hover:not(:disabled),[data-theme="dark"] .add:hover:not(:disabled),[data-theme="dark"] .payment-link:hover,[data-theme="dark"] .catalog-actions button:hover:not(:disabled),[data-theme="dark"] .modal-back:hover,[data-theme="dark"] .payment-options button:hover:not(:disabled),[data-theme="dark"] .filter-row button:not(.active):hover,[data-theme="dark"] .prompts button:hover,[data-theme="dark"] .sale-banner button:hover,[data-theme="dark"] .qr-btn:hover,[data-theme="dark"] .scroll-track>button:hover,[data-theme="dark"] .close:hover,[data-theme="dark"] .heart:not(.saved):hover,[data-theme="dark"] .qty button:hover:not(:disabled),[data-theme="dark"] .search-clear:hover,[data-theme="dark"] .actions>button:not(.account):hover,[data-theme="dark"] .hero-controls>button:hover,[data-theme="dark"] .shelf-head>div:last-child button:hover{background-image:linear-gradient(178deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%)!important;color:var(--b3-ink-h)!important;box-shadow:var(--b3-glass-h)!important;transform:translateY(-3px)!important}
+}
+[data-theme="dark"] .quick{transform:translate(-50%,0)!important}
+@media(hover:hover) and (pointer:fine){[data-theme="dark"] .product-visual:hover .quick,[data-theme="dark"] .quick:hover{background-image:linear-gradient(178deg,var(--b3-face-h1),var(--b3-face-h2))!important;color:var(--b3-ink-h)!important;transform:translate(-50%,-3px)!important}}
+[data-theme="dark"] button:disabled{box-shadow:0 1px 2px rgba(0,0,0,.4),inset 0 0 0 1px var(--b3-edge)!important}
+
+/* --- dock icons: drop the stray light-mode inset highlight (renders as a bright line in dark) --- */
+.mobile-dock .dock-icon{box-shadow:none!important;background:none!important;border:0!important}
+.mobile-dock a.active,.mobile-dock button.active{color:var(--ui-link)!important}
+
+/* --- overlay stacking: drawers must sit above the mobile dock (65) and the guide FAB (72) --- */
+.guide,.cart-drawer{z-index:88!important}
+.guide-fab{z-index:72}
+body:has(.guide) .guide-fab,body:has(.cart-drawer) .guide-fab{opacity:0!important;pointer-events:none!important;transform:translateY(8px) scale(.9)!important}
+body:has(.guide) .mobile-dock,body:has(.cart-drawer) .mobile-dock{opacity:0!important;pointer-events:none!important}
+@media(max-width:680px){.guide .composer{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}}
+
+/* --- dock labels: inactive items must clear 4.5:1 against the dock glass --- */
+.mobile-dock a,.mobile-dock button{color:#48505c!important}
+[data-theme="dark"] .mobile-dock a,[data-theme="dark"] .mobile-dock button{color:#c2ced9!important}
+.mobile-dock a.active,.mobile-dock button.active{color:#0a5fb4!important}
+[data-theme="dark"] .mobile-dock a.active,[data-theme="dark"] .mobile-dock button.active{color:#7cc4ff!important}
+.mobile-dock .dock-sale,[data-theme="dark"] .mobile-dock .dock-sale{color:#fff!important}
+.mobile-dock a:active,.mobile-dock button:active{background:#dbe9fb!important;color:#0a5fb4!important}
+[data-theme="dark"] .mobile-dock a:active,[data-theme="dark"] .mobile-dock button:active{background:#2c3a4c!important;color:#dbeaff!important}
+.mobile-dock .dock-sale:active,[data-theme="dark"] .mobile-dock .dock-sale:active{background-color:transparent!important;color:#fff!important}
+/* hover blue top stop nudged so every stop clears 4.5:1 against white label text */
+:root,[data-theme="dark"]{--b3-blue-h1:#1578d6}
+@media(hover:hover) and (pointer:fine){
+[data-theme="dark"] .mode button:hover:not(.active){background:#2b3644!important;color:#eaf2fb!important}
+[data-theme="dark"] .category:hover{background:#1b232d!important}
+}
+.payment-link{border-radius:999px!important}
+/* --- overlays must sit above the dock/FAB, and mobile sheets should hug their content --- */
+.overlay{z-index:86!important}
+body:has(.overlay) .mobile-dock,body:has(.overlay) .guide-fab{opacity:0!important;pointer-events:none!important}
+body:has(.overlay) .guide-fab{transform:translateY(8px) scale(.9)!important}
+@media(max-width:680px){.overlay{align-items:end!important}.modal:has(.pdp){align-self:stretch!important}}
+/* --- sign-in was unreachable below 680px: restore it as a compact header icon pad --- */
+@media(max-width:680px){.actions .account{display:grid!important;place-items:center;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;padding:0!important;gap:0!important;border-radius:14px!important}.actions .account span{display:none!important}}
+.actions .account{background-image:linear-gradient(178deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%)!important;background-color:var(--b3-face-1)!important;color:var(--b3-ink)!important;border:0!important;box-shadow:var(--b3-glass)!important}
+[data-theme="dark"] .actions .account{background-image:linear-gradient(178deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%)!important;background-color:var(--b3-face-1)!important;color:var(--b3-ink)!important;border:0!important;box-shadow:var(--b3-glass)!important}
+@media(hover:hover) and (pointer:fine){.actions .account:hover,[data-theme="dark"] .actions .account:hover{background-image:linear-gradient(178deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%)!important;color:var(--b3-ink-h)!important;box-shadow:var(--b3-glass-h)!important;transform:translateY(-3px)!important;border-color:transparent!important}}
+.actions .account:active,[data-theme="dark"] .actions .account:active{transform:translateY(2px) scale(.985)!important;box-shadow:var(--b3-glass-p)!important}
+.actions b:empty,.mobile-dock b:empty{display:none!important}
+/* --- disabled controls: read as inactive without dropping the label below 4.5:1 --- */
+/* selectors carry html+body so they outrank `.pagination button:disabled` and
+   `[data-theme="dark"] .pagination button`, which otherwise keep the blue fill */
+html[data-theme] body button:disabled,html[data-theme] body button[disabled]{opacity:1!important;background-image:none!important;background-color:#dfe3ea!important;color:#5c6675!important;text-shadow:none!important;box-shadow:inset 0 0 0 1px rgba(20,40,70,.14)!important;transform:none!important;filter:none!important;cursor:not-allowed}
+html[data-theme] body button:disabled svg,html[data-theme] body button[disabled] svg{color:#5c6675!important;transform:none!important;filter:none!important}
+html[data-theme="dark"] body button:disabled,html[data-theme="dark"] body button[disabled]{background-color:#2a323d!important;color:#93a0b0!important;box-shadow:inset 0 0 0 1px rgba(160,190,220,.18)!important}
+html[data-theme="dark"] body button:disabled svg,html[data-theme="dark"] body button[disabled] svg{color:#93a0b0!important}
+html[data-theme] body button:disabled::before,html[data-theme] body button[disabled]::before{display:none!important}
+:root,[data-theme="dark"]{--b3-blue-h1:#1576d2}
