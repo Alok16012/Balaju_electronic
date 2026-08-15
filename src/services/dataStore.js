@@ -4,7 +4,7 @@
    Two backends sit behind one interface:
      - local     (default) localStorage, zero config, works the moment you scan
      - supabase  PostgREST over fetch, enabled by setting VITE_SUPABASE_URL and
-                 VITE_SUPABASE_ANON_KEY (see supabase/schema.sql for the tables)
+                 VITE_SUPABASE_PUBLISHABLE_KEY (see supabase/schema.sql)
 
    Local is always written first so a tap never waits on the network — important
    when the catalogue is opened from a QR code on patchy mobile data. Remote
@@ -16,7 +16,9 @@ const OUTBOX_KEY = 'balaji-crm-outbox';
 const STATE_KEY = phone => `balaji-state:${phone}`;
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+/* Publishable keys are the current browser-safe key format. The legacy anon
+   variable remains a fallback so an existing deployment does not break. */
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 export const remoteEnabled = Boolean(SUPABASE_URL && SUPABASE_KEY);
 export const backendName = remoteEnabled ? 'supabase' : 'local';
 
@@ -116,14 +118,18 @@ async function rest(table, {method = 'GET', body, query = '', prefer} = {}){
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`${table} ${method} failed (${res.status})`);
+  if (!res.ok){
+    const error = new Error(`${table} ${method} failed (${res.status})`);
+    error.status = res.status;
+    throw error;
+  }
   return res.status === 204 ? null : res.json();
 }
 
 /* Queue a remote write, try immediately, keep it for retry if the network is
    down. The local copy has already been written, so a failure here is invisible
    to the customer and self-heals on the next load or `online` event. */
-function push(table, body, prefer = 'resolution=merge-duplicates'){
+function push(table, body, prefer){
   if (!remoteEnabled) return;
   const outbox = readJson(OUTBOX_KEY, []);
   outbox.push({id: uid(), table, body, prefer});
@@ -140,7 +146,9 @@ export async function flush(){
   const remaining = [];
   for (const item of outbox){
     try { await rest(item.table, {method:'POST', body:item.body, prefer:item.prefer}); }
-    catch { remaining.push(item); }
+    /* A returning lead can hit the phone primary key. The original capture is
+       already durable, so a duplicate is complete rather than retryable. */
+    catch (error) { if (error.status !== 409) remaining.push(item); }
   }
   writeJson(OUTBOX_KEY, remaining);
   flushing = false;
@@ -182,7 +190,7 @@ export function identify({name, phone, source}){
   push('leads', {
     id: lead.id, name: lead.name, phone: lead.phone, source: lead.source,
     captured_at: lead.at, last_seen: at, visits: lead.visits, device: lead.device,
-  }, 'resolution=merge-duplicates');
+  });
   return lead;
 }
 
@@ -200,7 +208,7 @@ export function recordCart({phone, name, product, action = 'add', qty = 1, price
   push('cart_events', {
     id: row.id, phone: key, customer_name: name, product_id: row.productId, sku: row.sku,
     product_name: row.product, category: row.cat, price, qty, action, occurred_at: row.at,
-  }, 'resolution=ignore-duplicates');
+  });
 }
 
 export function recordFavourite({phone, name, product, action = 'add', price}){
@@ -211,7 +219,7 @@ export function recordFavourite({phone, name, product, action = 'add', price}){
   push('favourite_events', {
     id: row.id, phone: key, customer_name: name, product_id: row.productId, sku: row.sku,
     product_name: row.product, category: row.cat, price, action, occurred_at: row.at,
-  }, 'resolution=ignore-duplicates');
+  });
 }
 
 export function recordOrder({phone, name, items, total, mode, method}){
@@ -227,7 +235,7 @@ export function recordOrder({phone, name, items, total, mode, method}){
   push('orders', {
     id: row.id, order_ref: row.ref, phone: key, customer_name: name, mode, method: row.method,
     total, items: row.items, placed_at: row.at,
-  }, 'resolution=ignore-duplicates');
+  });
   return row;
 }
 
@@ -242,7 +250,7 @@ export function saveCustomerState(phone, {cart, saved}){
     updatedAt: now(),
   };
   writeJson(STATE_KEY(key), state);
-  push('customer_state', {phone: key, cart: state.cart, saved: state.saved, updated_at: state.updatedAt});
+  push('customer_state', {phone: key, cart: state.cart, saved: state.saved, updated_at: state.updatedAt}, 'resolution=merge-duplicates');
 }
 
 /* Synchronous local read, used at first paint so a returning customer sees

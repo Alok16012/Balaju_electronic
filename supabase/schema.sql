@@ -1,6 +1,8 @@
 -- Balaji Electronic — QR catalogue CRM schema.
 -- Paste into the Supabase SQL editor, then set VITE_SUPABASE_URL and
--- VITE_SUPABASE_ANON_KEY in .env.local. Without those the app runs the same
+-- VITE_SUPABASE_PUBLISHABLE_KEY (or the browser-safe legacy anon key while a
+-- project is awaiting publishable-key Data API support) in .env.local. Without
+-- those the app runs the same
 -- feature set against localStorage, so this file is optional for a demo.
 --
 -- Phone number is the join key across all four tables: one number reconstructs
@@ -69,6 +71,15 @@ create index if not exists cart_events_phone_idx       on cart_events (phone, oc
 create index if not exists favourite_events_phone_idx  on favourite_events (phone, occurred_at desc);
 create index if not exists orders_phone_idx            on orders (phone, placed_at desc);
 create index if not exists leads_captured_idx          on leads (captured_at desc);
+
+-- New Supabase projects can opt out of automatic Data API exposure. Grant the
+-- table privileges explicitly; RLS policies below still decide which rows each
+-- role can access.
+grant select, insert, update on table leads to anon, authenticated;
+grant select, insert on table cart_events to anon, authenticated;
+grant select, insert on table favourite_events to anon, authenticated;
+grant select, insert on table orders to anon, authenticated;
+grant select, insert, update on table customer_state to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row level security
