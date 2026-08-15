@@ -1,0 +1,367 @@
+/* CRM store for the QR catalogue: leads, cart activity, favourites and orders,
+   all keyed by the customer's phone number so admin can replay a full journey.
+
+   Two backends sit behind one interface:
+     - local     (default) localStorage, zero config, works the moment you scan
+     - supabase  PostgREST over fetch, enabled by setting VITE_SUPABASE_URL and
+                 VITE_SUPABASE_ANON_KEY (see supabase/schema.sql for the tables)
+
+   Local is always written first so a tap never waits on the network — important
+   when the catalogue is opened from a QR code on patchy mobile data. Remote
+   writes go through an outbox that retries on reconnect and on next load. */
+
+const DB_KEY = 'balaji-crm';
+const LEAD_KEY = 'balaji-lead';
+const OUTBOX_KEY = 'balaji-crm-outbox';
+const STATE_KEY = phone => `balaji-state:${phone}`;
+
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const remoteEnabled = Boolean(SUPABASE_URL && SUPABASE_KEY);
+export const backendName = remoteEnabled ? 'supabase' : 'local';
+
+const EMPTY = {leads:[], cart:[], favourites:[], orders:[]};
+const now = () => new Date().toISOString();
+const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/* ---------- phone is the join key across all four tables ---------- */
+
+export function normalisePhone(raw){
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+export function isValidPhone(raw){
+  const p = normalisePhone(raw);
+  return p.length === 10 && /^[6-9]/.test(p);
+}
+export const formatPhone = raw => {
+  const p = normalisePhone(raw);
+  return p.length === 10 ? `+91 ${p.slice(0, 5)} ${p.slice(5)}` : raw || '';
+};
+
+/* ---------- local persistence ---------- */
+
+function readJson(key, fallback){
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function writeJson(key, value){
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch { return false; }
+}
+const readDb = () => ({...EMPTY, ...readJson(DB_KEY, EMPTY)});
+
+/* Every mutation goes through here so subscribers refresh exactly once. */
+function commit(mutate){
+  const db = readDb();
+  const result = mutate(db);
+  writeJson(DB_KEY, db);
+  emit();
+  return result;
+}
+
+/* ---------- change notification (admin panel live refresh) ---------- */
+
+const listeners = new Set();
+const emit = () => listeners.forEach(fn => { try { fn(); } catch {} });
+
+export function subscribe(fn){
+  listeners.add(fn);
+  const cross = e => { if (e.key === DB_KEY) fn(); };
+  addEventListener('storage', cross);
+  return () => { listeners.delete(fn); removeEventListener('storage', cross); };
+}
+
+/* ---------- supabase transport ---------- */
+
+const ADMIN_KEY = 'balaji-admin-session';
+
+/* Reads run as the signed-in admin when there is a live Supabase session, so
+   RLS can keep the four CRM tables closed to the anonymous catalogue key. */
+export function adminSession(){
+  const s = readJson(ADMIN_KEY, null);
+  return s && s.expiresAt > Date.now() ? s : null;
+}
+export function adminSignOut(){
+  try { localStorage.removeItem(ADMIN_KEY); } catch {}
+}
+export async function adminSignIn({email, password}){
+  if (!remoteEnabled) throw new Error('Supabase is not configured');
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {apikey: SUPABASE_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password}),
+  });
+  if (!res.ok) throw new Error('Invalid email or password');
+  const session = await res.json();
+  writeJson(ADMIN_KEY, {
+    email,
+    token: session.access_token,
+    expiresAt: Date.now() + ((session.expires_in || 3600) * 1000),
+  });
+  return session;
+}
+
+async function rest(table, {method = 'GET', body, query = '', prefer} = {}){
+  const session = adminSession();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${session ? session.token : SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(prefer ? {Prefer: prefer} : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`${table} ${method} failed (${res.status})`);
+  return res.status === 204 ? null : res.json();
+}
+
+/* Queue a remote write, try immediately, keep it for retry if the network is
+   down. The local copy has already been written, so a failure here is invisible
+   to the customer and self-heals on the next load or `online` event. */
+function push(table, body, prefer = 'resolution=merge-duplicates'){
+  if (!remoteEnabled) return;
+  const outbox = readJson(OUTBOX_KEY, []);
+  outbox.push({id: uid(), table, body, prefer});
+  writeJson(OUTBOX_KEY, outbox.slice(-500));
+  flush();
+}
+
+let flushing = false;
+export async function flush(){
+  if (!remoteEnabled || flushing || !navigator.onLine) return;
+  const outbox = readJson(OUTBOX_KEY, []);
+  if (!outbox.length) return;
+  flushing = true;
+  const remaining = [];
+  for (const item of outbox){
+    try { await rest(item.table, {method:'POST', body:item.body, prefer:item.prefer}); }
+    catch { remaining.push(item); }
+  }
+  writeJson(OUTBOX_KEY, remaining);
+  flushing = false;
+}
+if (remoteEnabled) addEventListener('online', flush);
+
+export const pendingWrites = () => readJson(OUTBOX_KEY, []).length;
+
+/* ---------- current session lead ---------- */
+
+export const getLead = () => readJson(LEAD_KEY, null);
+export function clearLead(){
+  try { localStorage.removeItem(LEAD_KEY); } catch {}
+}
+
+/* Records a scan. Returning customers keep their original lead id and get their
+   visit count bumped, so the admin Leads table shows repeat scanners. */
+export function identify({name, phone, source}){
+  const key = normalisePhone(phone);
+  const at = now();
+  const lead = commit(db => {
+    const existing = db.leads.find(l => l.phone === key);
+    if (existing){
+      existing.name = name || existing.name;
+      existing.lastSeen = at;
+      existing.visits = (existing.visits || 1) + 1;
+      if (source) existing.source = source;
+      return existing;
+    }
+    const created = {
+      id: uid(), name, phone: key, source: source || 'direct',
+      at, lastSeen: at, visits: 1,
+      device: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    };
+    db.leads.push(created);
+    return created;
+  });
+  writeJson(LEAD_KEY, {id: lead.id, name: lead.name, phone: lead.phone, at: lead.at});
+  push('leads', {
+    id: lead.id, name: lead.name, phone: lead.phone, source: lead.source,
+    captured_at: lead.at, last_seen: at, visits: lead.visits, device: lead.device,
+  }, 'resolution=merge-duplicates');
+  return lead;
+}
+
+/* ---------- activity ---------- */
+
+const slim = p => ({
+  productId: p.id, sku: p.sku || '', product: p.name, cat: p.cat, price: p.price, img: p.img,
+});
+
+export function recordCart({phone, name, product, action = 'add', qty = 1, price}){
+  const key = normalisePhone(phone);
+  if (!key) return;
+  const row = {id: uid(), phone: key, name, ...slim(product), action, qty, price, at: now()};
+  commit(db => db.cart.push(row));
+  push('cart_events', {
+    id: row.id, phone: key, customer_name: name, product_id: row.productId, sku: row.sku,
+    product_name: row.product, category: row.cat, price, qty, action, occurred_at: row.at,
+  }, 'resolution=ignore-duplicates');
+}
+
+export function recordFavourite({phone, name, product, action = 'add', price}){
+  const key = normalisePhone(phone);
+  if (!key) return;
+  const row = {id: uid(), phone: key, name, ...slim(product), action, price, at: now()};
+  commit(db => db.favourites.push(row));
+  push('favourite_events', {
+    id: row.id, phone: key, customer_name: name, product_id: row.productId, sku: row.sku,
+    product_name: row.product, category: row.cat, price, action, occurred_at: row.at,
+  }, 'resolution=ignore-duplicates');
+}
+
+export function recordOrder({phone, name, items, total, mode, method}){
+  const key = normalisePhone(phone);
+  if (!key) return null;
+  const row = {
+    id: uid(),
+    ref: `BE-${Date.now().toString().slice(-6)}`,
+    phone: key, name, mode, method: method || 'UPI', total, at: now(),
+    items: items.map(i => ({...slim(i), qty: i.qty, price: i.linePrice ?? i.price})),
+  };
+  commit(db => db.orders.push(row));
+  push('orders', {
+    id: row.id, order_ref: row.ref, phone: key, customer_name: name, mode, method: row.method,
+    total, items: row.items, placed_at: row.at,
+  }, 'resolution=ignore-duplicates');
+  return row;
+}
+
+/* ---------- cart + favourites tied to the phone number ---------- */
+
+export function saveCustomerState(phone, {cart, saved}){
+  const key = normalisePhone(phone);
+  if (!key) return;
+  const state = {
+    cart: cart.map(i => ({id: i.id, qty: i.qty})),
+    saved: [...saved],
+    updatedAt: now(),
+  };
+  writeJson(STATE_KEY(key), state);
+  push('customer_state', {phone: key, cart: state.cart, saved: state.saved, updated_at: state.updatedAt});
+}
+
+/* Synchronous local read, used at first paint so a returning customer sees
+   their basket immediately instead of after a network round trip. */
+export function readCustomerState(phone){
+  const key = normalisePhone(phone);
+  return key ? readJson(STATE_KEY(key), null) : null;
+}
+
+/* Reads the phone's basket back. With Supabase configured the remote row wins
+   when it is newer, so a customer who scanned on another device sees the same
+   cart; otherwise we fall back to whatever this device already holds. */
+export async function loadCustomerState(phone){
+  const key = normalisePhone(phone);
+  if (!key) return null;
+  const local = readCustomerState(key);
+  if (!remoteEnabled) return local;
+  try {
+    const rows = await rest('customer_state', {query: `?phone=eq.${key}&select=*&limit=1`});
+    const row = rows && rows[0];
+    if (!row) return local;
+    const remote = {cart: row.cart || [], saved: row.saved || [], updatedAt: row.updated_at};
+    if (!local || new Date(remote.updatedAt) > new Date(local.updatedAt)){
+      writeJson(STATE_KEY(key), remote);
+      return remote;
+    }
+  } catch { /* offline — local copy is still correct */ }
+  return local;
+}
+
+/* ---------- admin reads ---------- */
+
+const byNewest = field => (a, b) => new Date(b[field]) - new Date(a[field]);
+
+/* Pulls from Supabase when configured and mirrors the result locally, so the
+   admin panel keeps working offline and on a device that has never synced. */
+export async function loadAll(){
+  if (remoteEnabled){
+    try {
+      const [leads, cart, favourites, orders] = await Promise.all([
+        rest('leads', {query: '?select=*&order=captured_at.desc&limit=1000'}),
+        rest('cart_events', {query: '?select=*&order=occurred_at.desc&limit=2000'}),
+        rest('favourite_events', {query: '?select=*&order=occurred_at.desc&limit=2000'}),
+        rest('orders', {query: '?select=*&order=placed_at.desc&limit=1000'}),
+      ]);
+      const db = {
+        leads: leads.map(r => ({id:r.id, name:r.name, phone:r.phone, source:r.source, at:r.captured_at, lastSeen:r.last_seen, visits:r.visits, device:r.device})),
+        cart: cart.map(mapEvent('occurred_at')),
+        favourites: favourites.map(mapEvent('occurred_at')),
+        orders: orders.map(r => ({id:r.id, ref:r.order_ref, phone:r.phone, name:r.customer_name, mode:r.mode, total:r.total, items:r.items || [], at:r.placed_at})),
+      };
+      writeJson(DB_KEY, db);
+      return db;
+    } catch { /* fall through to the local mirror */ }
+  }
+  const db = readDb();
+  return {
+    leads: [...db.leads].sort(byNewest('at')),
+    cart: [...db.cart].sort(byNewest('at')),
+    favourites: [...db.favourites].sort(byNewest('at')),
+    orders: [...db.orders].sort(byNewest('at')),
+  };
+}
+
+const mapEvent = stamp => r => ({
+  id: r.id, phone: r.phone, name: r.customer_name, productId: r.product_id, sku: r.sku,
+  product: r.product_name, cat: r.category, price: r.price, qty: r.qty, action: r.action, at: r[stamp],
+});
+
+/* Favourites are stored as an event log so history survives; the admin list
+   wants the current state, which is the newest action per phone + product. */
+export function activeFavourites(favourites){
+  const latest = new Map();
+  [...favourites].sort((a, b) => new Date(a.at) - new Date(b.at))
+    .forEach(f => latest.set(`${f.phone}:${f.productId}`, f));
+  return [...latest.values()].filter(f => f.action === 'add').sort(byNewest('at'));
+}
+
+/* The whole journey for one customer, which is the point of keying on phone. */
+export function journeyFor(db, phone){
+  const key = normalisePhone(phone);
+  const match = rows => rows.filter(r => r.phone === key);
+  return {
+    lead: db.leads.find(l => l.phone === key) || null,
+    cart: match(db.cart),
+    favourites: match(db.favourites),
+    orders: match(db.orders),
+  };
+}
+
+/* Per-lead counters for the Leads table, computed in one pass instead of
+   filtering four arrays per row. */
+export function rollup(db){
+  const tally = new Map();
+  const bump = (phone, field, value = 1) => {
+    const row = tally.get(phone) || {cart: 0, favourites: 0, orders: 0, revenue: 0};
+    row[field] += value;
+    tally.set(phone, row);
+  };
+  db.cart.forEach(e => e.action === 'add' && bump(e.phone, 'cart'));
+  activeFavourites(db.favourites).forEach(e => bump(e.phone, 'favourites'));
+  db.orders.forEach(o => { bump(o.phone, 'orders'); bump(o.phone, 'revenue', o.total || 0); });
+  return tally;
+}
+
+export function toCsv(rows, columns){
+  const cell = v => {
+    const s = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [columns.map(c => c.label).join(','), ...rows.map(r => columns.map(c => cell(c.get(r))).join(','))].join('\n');
+}
+
+export function downloadCsv(filename, csv){
+  const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+if (remoteEnabled) flush();

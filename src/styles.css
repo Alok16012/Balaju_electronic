@@ -311,3 +311,220 @@ html[data-theme] body button:disabled::before,html[data-theme] body button[disab
    both edge rings so the button reads as a distinct object. --- */
 :root{--b3-face-h1:#e6f1ff;--b3-face-h2:#c8dffa;--b3-edge:rgba(19,44,74,.55);--b3-edge-h:rgba(10,95,180,.72)}
 :root{--b3-glass-h:0 2px 3px rgba(16,42,74,.1),0 10px 18px -6px var(--b3-amb-h),0 24px 44px -14px var(--b3-amb-h),inset 0 1px 0 rgba(255,255,255,.9),inset 0 -3px 0 var(--b3-lip),inset 0 0 0 1.5px var(--b3-edge-h)}
+
+/* ============================================================================
+   QR CATALOGUE CRM — lead gate + admin panel.
+   Everything below is namespaced under .lead-gate / .admin-* so it cannot
+   reach the storefront rules above. Buttons reuse the .primary 3D recipe and
+   the --b3-* tokens, so both themes stay WCAG-legible without new overrides.
+   ========================================================================= */
+.lead-gate,.admin-panel,.admin-login{--crm-line:rgba(19,44,74,.4);--crm-line-strong:rgba(19,44,74,.62);--crm-card:#fff;--crm-sunk:#f5f5f7}
+[data-theme="dark"] .lead-gate,[data-theme="dark"] .admin-panel,[data-theme="dark"] .admin-login{--crm-line:rgba(170,200,230,.3);--crm-line-strong:rgba(170,200,230,.55);--crm-card:#151b23;--crm-sunk:#0f151d}
+
+/* ---------- shared form field ---------- */
+.lead-field{display:flex;flex-direction:column;gap:7px;text-align:left}
+.lead-field>span{font-size:13px;font-weight:700;letter-spacing:.01em;color:var(--ui-text-2)}
+.lead-field input{width:100%;height:52px;padding:0 15px;font:inherit;font-size:16px;color:var(--ui-text);background:var(--crm-sunk);border:1.5px solid var(--crm-line-strong);border-radius:14px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+.lead-field input::placeholder{color:var(--ui-text-3)}
+.lead-field input:focus-visible{border-color:var(--b3-blue-2);box-shadow:0 0 0 4px rgba(21,118,210,.24);background:var(--crm-card)}
+.lead-field input[aria-invalid="true"]{border-color:#c62828}
+[data-theme="dark"] .lead-field input[aria-invalid="true"]{border-color:#ff8a80}
+.lead-phone{display:flex;align-items:center;gap:0;background:var(--crm-sunk);border:1.5px solid var(--crm-line-strong);border-radius:14px;overflow:hidden;transition:border-color .18s,box-shadow .18s}
+.lead-phone:focus-within{border-color:var(--b3-blue-2);box-shadow:0 0 0 4px rgba(21,118,210,.24)}
+.lead-phone i{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 13px;font-style:normal;font-weight:700;font-size:15px;color:var(--ui-text-2);background:rgba(19,44,74,.07);border-right:1.5px solid var(--crm-line)}
+[data-theme="dark"] .lead-phone i{background:rgba(170,200,230,.09)}
+.lead-phone input{border:0;border-radius:0;background:transparent;letter-spacing:.06em}
+.lead-phone input:focus-visible{box-shadow:none;background:transparent}
+.lead-error{display:block;font-size:12.5px;font-weight:600;color:#c62828}
+[data-theme="dark"] .lead-error{color:#ff9e93}
+
+/* ---------- lead gate ---------- */
+.lead-gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px 18px;overflow-y:auto;background:radial-gradient(120% 90% at 50% 0,#eaf2fd 0%,#f5f5f7 55%,#e6ecf5 100%)}
+[data-theme="dark"] .lead-gate{background:radial-gradient(120% 90% at 50% 0,#122033 0%,#0a1018 58%,#05080d 100%)}
+.lead-gate-card{width:min(440px,100%);padding:34px 30px 28px;text-align:center;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:26px;box-shadow:0 2px 4px rgba(12,32,60,.06),0 24px 48px -18px rgba(12,32,60,.28),0 60px 96px -50px rgba(12,32,60,.4)}
+[data-theme="dark"] .lead-gate-card{box-shadow:0 2px 4px rgba(0,0,0,.4),0 26px 54px -20px rgba(0,0,0,.7)}
+.lead-gate-mark{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 16px;font-size:24px;font-weight:800;color:#fff;background:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-3) 100%);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.42),0 8px 18px -8px rgba(12,72,150,.6)}
+.lead-gate-kicker{display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;padding:6px 13px;font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ui-text-2);background:var(--crm-sunk);border:1px solid var(--crm-line);border-radius:999px}
+.lead-gate-kicker svg{width:14px;height:14px}
+.lead-gate h1{margin:0 0 10px;font-size:clamp(26px,6vw,32px);line-height:1.12;letter-spacing:-.02em;color:var(--ui-text)}
+.lead-gate-copy{margin:0 0 24px;font-size:15px;line-height:1.55;color:var(--ui-text-2)}
+.lead-gate form{display:flex;flex-direction:column;gap:16px}
+.lead-submit{width:100%;justify-content:center;margin-top:4px}
+.lead-gate-perks{display:flex;flex-direction:column;gap:9px;margin:24px 0 0;padding:20px 0 0;list-style:none;border-top:1px solid var(--crm-line)}
+.lead-gate-perks li{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--ui-text-2)}
+.lead-gate-perks svg{flex:none;width:16px;height:16px;color:var(--b3-blue-2)}
+[data-theme="dark"] .lead-gate-perks svg{color:#7fc0ff}
+
+/* ---------- admin login ---------- */
+.admin-login{display:grid;place-items:center;min-height:100dvh;padding:24px 18px;background:var(--ui-bg)}
+.admin-login-card{width:min(400px,100%);display:flex;flex-direction:column;gap:16px;padding:32px 28px;text-align:center;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:24px;box-shadow:0 20px 44px -20px rgba(12,32,60,.32)}
+.admin-login-mark{display:grid;place-items:center;width:48px;height:48px;margin:0 auto;color:#fff;background:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-3) 100%);border-radius:15px}
+.admin-login-card h1{margin:0;font-size:25px;letter-spacing:-.02em;color:var(--ui-text)}
+.admin-login-card>p{margin:-8px 0 4px;font-size:14px;color:var(--ui-text-2)}
+.admin-login-note{font-size:12px;line-height:1.5;color:var(--ui-text-3)}
+
+/* ---------- admin shell ---------- */
+.admin-panel{min-height:100dvh;padding:22px clamp(14px,3vw,32px) 60px;background:var(--ui-bg);color:var(--ui-text)}
+.admin-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
+.admin-title{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.admin-title h1{margin:0;font-size:clamp(21px,4vw,27px);letter-spacing:-.02em}
+.admin-backend{padding:5px 11px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;color:#0b4f2a;background:#c9f2d9;border:1px solid rgba(11,79,42,.4)}
+.admin-backend.local{color:#5a4300;background:#ffeab0;border-color:rgba(90,67,0,.42)}
+.admin-backend.pending{display:inline-flex;align-items:center;gap:6px;color:#7a2c14;background:#ffd9c9;border-color:rgba(122,44,20,.42)}
+.admin-backend svg{width:13px;height:13px}
+[data-theme="dark"] .admin-backend{color:#b6f5cf;background:#123a25;border-color:rgba(182,245,207,.42)}
+[data-theme="dark"] .admin-backend.local{color:#ffe08a;background:#3b3113;border-color:rgba(255,224,138,.42)}
+[data-theme="dark"] .admin-backend.pending{color:#ffc2a8;background:#42210f;border-color:rgba(255,194,168,.42)}
+.admin-head-actions{display:flex;flex-wrap:wrap;gap:9px}
+
+/* 3D control recipe, same tokens as the storefront buttons */
+.admin-head-actions button,.admin-exit,.admin-tabs button,.admin-journey-card .close{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 15px;font:inherit;font-size:13.5px;font-weight:700;color:var(--b3-ink);cursor:pointer;border:0;border-radius:999px;background-image:linear-gradient(180deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%);box-shadow:var(--b3-glass);transition:transform .16s var(--b3-ease),box-shadow .16s var(--b3-ease),background-image .16s var(--b3-ease)}
+.admin-head-actions button svg,.admin-exit svg,.admin-tabs button svg{width:16px;height:16px}
+@media(hover:hover) and (pointer:fine){
+ .admin-head-actions button:hover,.admin-exit:hover,.admin-tabs button:hover,.admin-journey-card .close:hover{transform:translateY(-3px);background-image:linear-gradient(180deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%);box-shadow:var(--b3-glass-h);color:var(--b3-ink-h)}
+}
+.admin-head-actions button:active,.admin-exit:active,.admin-tabs button:active,.admin-journey-card .close:active{transform:translateY(2px) scale(.985);box-shadow:var(--b3-glass-p)}
+.admin-head-actions button:focus-visible,.admin-exit:focus-visible,.admin-tabs button:focus-visible,.admin-phone:focus-visible,.admin-link:focus-visible{outline:3px solid var(--b3-blue-2);outline-offset:2px}
+.admin-tabs button.active,.admin-tabs button[aria-selected="true"]{color:#fff;background-image:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-2) 55%,var(--b3-blue-3) 100%);box-shadow:var(--b3-solid)}
+@media(hover:hover) and (pointer:fine){.admin-tabs button.active:hover{color:#fff;background-image:linear-gradient(180deg,var(--b3-blue-h1) 0%,var(--b3-blue-h2) 55%,var(--b3-blue-h3) 100%);box-shadow:var(--b3-solid-h)}}
+.admin-head-actions button.spin svg{animation:admin-spin .8s linear infinite}
+@keyframes admin-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.admin-head-actions button.spin svg{animation:none}.admin-head-actions button,.admin-exit,.admin-tabs button{transition:none}}
+
+/* ---------- stats ---------- */
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.admin-stats>div{padding:15px 17px;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:18px;box-shadow:0 1px 2px rgba(12,32,60,.05),0 10px 22px -16px rgba(12,32,60,.4)}
+.admin-stats b{display:block;font-size:26px;line-height:1.1;letter-spacing:-.02em;color:var(--ui-text)}
+.admin-stats span{display:block;margin-top:5px;font-size:12.5px;font-weight:600;color:var(--ui-text-2)}
+
+/* ---------- toolbar ---------- */
+.admin-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.admin-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.admin-tabs button i{padding:1px 8px;font-style:normal;font-size:11.5px;font-weight:800;background:rgba(19,44,74,.12);border-radius:999px}
+[data-theme="dark"] .admin-tabs button i{background:rgba(170,200,230,.18)}
+/* Darken rather than lighten: a white veil over the pale top stop of the blue
+   gradient dropped the white count text to 3.1:1. */
+.admin-tabs button.active i{background:rgba(4,22,48,.3)}
+.admin-search{position:relative;display:flex;align-items:center;gap:9px;min-width:min(300px,100%);padding:0 13px;background:var(--crm-card);border:1.5px solid var(--crm-line-strong);border-radius:999px}
+.admin-search:focus-within{border-color:var(--b3-blue-2);box-shadow:0 0 0 4px rgba(21,118,210,.22)}
+.admin-search>svg{flex:none;width:16px;height:16px;color:var(--ui-text-2)}
+.admin-search input{flex:1;height:42px;font:inherit;font-size:14px;color:var(--ui-text);background:transparent;border:0;outline:none}
+.admin-search button{display:grid;place-items:center;width:24px;height:24px;color:var(--ui-text-2);background:transparent;border:0;border-radius:50%;cursor:pointer}
+.admin-search button:hover{color:var(--ui-text);background:rgba(19,44,74,.1)}
+
+/* ---------- table ---------- */
+.admin-table-wrap{overflow-x:auto;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:20px}
+.admin-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.admin-table th{position:sticky;top:0;z-index:1;padding:13px 15px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ui-text-2);background:var(--crm-sunk);border-bottom:1px solid var(--crm-line)}
+.admin-table td{padding:13px 15px;vertical-align:top;color:var(--ui-text-2);border-bottom:1px solid var(--crm-line)}
+.admin-table td b{color:var(--ui-text);font-weight:700}
+.admin-table tr:last-child td{border-bottom:0}
+.admin-table tbody tr:hover{background:var(--crm-sunk)}
+.admin-tag{display:inline-block;padding:2px 9px;font-size:11.5px;font-weight:800;text-transform:capitalize;color:var(--ui-text);background:var(--crm-sunk);border:1px solid var(--crm-line-strong);border-radius:999px}
+.admin-tag.remove{color:#7a2c14;background:#ffd9c9;border-color:rgba(122,44,20,.45)}
+[data-theme="dark"] .admin-tag.remove{color:#ffc2a8;background:#42210f;border-color:rgba(255,194,168,.45)}
+.admin-phone{font:inherit;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ui-link);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px}
+.admin-phone:hover{text-decoration-thickness:2.5px}
+.admin-empty{padding:44px 20px;text-align:center;font-size:14.5px;color:var(--ui-text-2)}
+.admin-empty-inline{margin:0;font-size:13px;color:var(--ui-text-3)}
+
+/* Tables become stacked cards on a phone — headers are re-emitted per cell
+   from the data-label attributes rather than lost to a horizontal scroll. */
+@media(max-width:760px){
+ .admin-table-wrap{border:0;background:none;overflow:visible}
+ .admin-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .admin-table,.admin-table tbody,.admin-table tr,.admin-table td{display:block;width:100%}
+ .admin-table tr{margin-bottom:12px;padding:6px 4px;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:16px}
+ .admin-table td{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:9px 14px;border-bottom:1px solid var(--crm-line)}
+ .admin-table td:last-child{border-bottom:0}
+ .admin-table td::before{content:attr(data-label);flex:none;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ui-text-3)}
+ .admin-head-actions button span,.admin-exit span{display:none}
+ .admin-head-actions button,.admin-exit{padding:0;width:42px}
+}
+
+/* ---------- journey drawer ---------- */
+.admin-journey{position:fixed;inset:0;z-index:210;display:flex;justify-content:flex-end}
+.admin-journey-scrim{position:absolute;inset:0;background:rgba(6,14,26,.55);backdrop-filter:blur(3px)}
+.admin-journey-card{position:relative;width:min(440px,100%);height:100%;overflow-y:auto;padding:24px;background:var(--crm-card);border-left:1px solid var(--crm-line);box-shadow:-24px 0 60px -30px rgba(0,0,0,.55);animation:admin-slide .28s var(--b3-ease)}
+@keyframes admin-slide{from{transform:translateX(28px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.admin-journey-card{animation:none}}
+.admin-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px}
+.admin-journey-card h2{margin:0 0 4px;font-size:21px;letter-spacing:-.02em;color:var(--ui-text)}
+.admin-journey-head p{margin:0;font-size:13px;color:var(--ui-text-2)}
+.admin-journey-card .close{width:40px;height:40px;padding:0;flex:none}
+.admin-journey-card section{margin-bottom:22px}
+.admin-journey-card h3{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ui-text-2)}
+.admin-journey-card h3 svg{width:15px;height:15px}
+.admin-journey-card h3 i{padding:1px 8px;font-style:normal;font-size:11.5px;color:var(--ui-text);background:var(--crm-sunk);border:1px solid var(--crm-line-strong);border-radius:999px}
+.admin-journey-card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.admin-journey-card li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:11px 13px;background:var(--crm-sunk);border:1px solid var(--crm-line);border-radius:13px}
+/* Explicit placement on all three children: a row-spanning `time` with an auto
+   column gets packed into column 1 and pushes the product name to the right. */
+.admin-journey-card li b{grid-area:1/1;font-size:14px;color:var(--ui-text)}
+.admin-journey-card li span{grid-area:2/1;font-size:12.5px;color:var(--ui-text-2)}
+.admin-journey-card li time{grid-area:1/2/3/3;align-self:center;font-size:11.5px;white-space:nowrap;color:var(--ui-text-3)}
+
+/* ---------- footer entry point ---------- */
+.admin-link{font-weight:700;color:inherit;opacity:.72;text-decoration:underline;text-underline-offset:3px}
+.admin-link:hover{opacity:1}
+
+/* ============================================================================
+   QR DIALOG — show a code for what is on screen, or read one with the camera.
+   Namespaced under .qr-* and appended last, so it lands on top of the original
+   .qr-modal rules (which sized the old single image and stretched .primary to
+   full width) without needing !important.
+   ========================================================================== */
+.qr-modal{--crm-line:rgba(19,44,74,.4);--crm-line-strong:rgba(19,44,74,.62);--crm-card:#fff;--crm-sunk:#f5f5f7;text-align:center}
+[data-theme="dark"] .qr-modal{--crm-line:rgba(170,200,230,.3);--crm-line-strong:rgba(170,200,230,.55);--crm-card:#151b23;--crm-sunk:#0f151d}
+.qr-modal h2{margin:13px 0 0;font-size:25px;letter-spacing:-.03em}
+
+.qr-tabs{display:flex;gap:8px;margin:15px 0 16px}
+.qr-tabs button{flex:1;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 14px;font:inherit;font-size:13.5px;font-weight:700;color:var(--b3-ink);cursor:pointer;border:0;border-radius:999px;background-image:linear-gradient(180deg,var(--b3-face-1) 0%,var(--b3-face-2) 100%);box-shadow:var(--b3-glass);transition:transform .16s var(--b3-ease),box-shadow .16s var(--b3-ease),background-image .16s var(--b3-ease)}
+.qr-tabs button svg{width:16px;height:16px}
+.qr-tabs button[aria-selected="true"]{color:#fff;background-image:linear-gradient(180deg,var(--b3-blue-1) 0%,var(--b3-blue-2) 55%,var(--b3-blue-3) 100%);box-shadow:var(--b3-solid)}
+@media(hover:hover) and (pointer:fine){
+ .qr-tabs button:hover{transform:translateY(-3px);background-image:linear-gradient(180deg,var(--b3-face-h1) 0%,var(--b3-face-h2) 100%);box-shadow:var(--b3-glass-h);color:var(--b3-ink-h)}
+ .qr-tabs button[aria-selected="true"]:hover{color:#fff;background-image:linear-gradient(180deg,var(--b3-blue-h1) 0%,var(--b3-blue-h2) 55%,var(--b3-blue-h3) 100%);box-shadow:var(--b3-solid-h)}
+}
+.qr-tabs button:active{transform:translateY(2px) scale(.985);box-shadow:var(--b3-glass-p)}
+.qr-tabs button:focus-visible,.qr-scope button:focus-visible,.qr-file:focus-within{outline:3px solid var(--b3-blue-2);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.qr-tabs button{transition:none}}
+
+.qr-scope{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-bottom:14px}
+.qr-scope button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px 13px;font:inherit;font-size:12px;font-weight:700;color:var(--ui-text-2);background:var(--crm-sunk);border:1.5px solid var(--crm-line);border-radius:999px;cursor:pointer}
+.qr-scope button.active{color:var(--ui-text);background:var(--crm-card);border-color:var(--b3-blue-2);box-shadow:0 0 0 3px rgba(21,118,210,.18)}
+
+/* The code itself stays dark-on-white in both themes — an inverted QR is legal
+   but half the scanner apps in a shop refuse to read one. */
+.qr-frame{display:grid;place-items:center;min-height:216px;padding:14px;background:#fff;border:1px solid var(--crm-line);border-radius:20px}
+.qr-modal .qr-frame img{width:100%;max-width:212px;height:auto;margin:0;border:0;border-radius:8px;display:block}
+.qr-frame span{font-size:13px;color:#5a6a7d}
+.qr-link{margin:11px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.5;color:var(--ui-text-2);overflow-wrap:anywhere}
+
+.qr-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;margin-top:15px}
+.qr-modal .qr-actions .primary,.qr-modal .qr-actions .secondary{width:auto;height:46px;padding:0 17px;font-size:13.5px;border-radius:14px}
+.qr-actions svg{width:16px;height:16px}
+.qr-note{display:block;margin-top:14px;font-size:12px;line-height:1.5;color:var(--ui-text-2)}
+
+.qr-scan{text-align:center}
+.qr-stage{position:relative;display:grid;place-items:center;aspect-ratio:4/3;overflow:hidden;background:#0b1220;border:1px solid var(--crm-line);border-radius:20px}
+.qr-stage video{width:100%;height:100%;object-fit:cover;display:none}
+.qr-stage.live video{display:block}
+.qr-stage span{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c9d6e6}
+.qr-stage span svg{width:17px;height:17px}
+.qr-stage i{position:absolute;width:58%;aspect-ratio:1;border:3px solid rgba(255,255,255,.92);border-radius:18px;box-shadow:0 0 0 100vmax rgba(4,10,20,.35)}
+.qr-file{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.qr-file input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.qr-error{margin:12px 0 0;font-size:13px;font-weight:700;color:#c62828}
+[data-theme="dark"] .qr-error{color:#ff8a80}
+.qr-foreign{margin:12px 0 0;padding:11px 13px;font-size:12.5px;line-height:1.5;text-align:left;color:var(--ui-text-2);background:var(--crm-sunk);border:1px solid var(--crm-line);border-radius:14px}
+.qr-foreign span{display:block;margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ui-text);overflow-wrap:anywhere}
+
+@media(max-width:680px){
+ .qr-tabs button{font-size:12.5px}
+ .qr-frame{min-height:0}
+ .qr-modal .qr-actions .primary,.qr-modal .qr-actions .secondary{flex:1 1 140px}
+}
+/* The overlay centres its box, so on a short laptop screen a tall dialog would
+   push its own action row off the top and bottom with nothing to scroll. */
+.modal:has(.qr-modal){max-height:min(92vh,780px);overflow-y:auto}
