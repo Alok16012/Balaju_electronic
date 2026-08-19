@@ -22,7 +22,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.met
 export const remoteEnabled = Boolean(SUPABASE_URL && SUPABASE_KEY);
 export const backendName = remoteEnabled ? 'supabase' : 'local';
 
-const EMPTY = {leads:[], cart:[], favourites:[], orders:[]};
+const EMPTY = {leads:[], cart:[], favourites:[], orders:[], visits:[]};
 const now = () => new Date().toISOString();
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
@@ -119,8 +119,12 @@ async function rest(table, {method = 'GET', body, query = '', prefer} = {}){
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok){
+    const detail = await res.json().catch(() => null);
     const error = new Error(`${table} ${method} failed (${res.status})`);
     error.status = res.status;
+    /* PostgREST returns the Postgres SQLSTATE here. The outbox needs it to tell
+       "already stored" apart from "parent row has not landed yet". */
+    error.code = detail && detail.code;
     throw error;
   }
   return res.status === 204 ? null : res.json();
@@ -140,18 +144,30 @@ function push(table, body, prefer){
 let flushing = false;
 export async function flush(){
   if (!remoteEnabled || flushing || !navigator.onLine) return;
-  const outbox = readJson(OUTBOX_KEY, []);
-  if (!outbox.length) return;
+  const queue = readJson(OUTBOX_KEY, []);
+  if (!queue.length) return;
   flushing = true;
-  const remaining = [];
-  for (const item of outbox){
-    try { await rest(item.table, {method:'POST', body:item.body, prefer:item.prefer}); }
-    /* A returning lead can hit the phone primary key. The original capture is
-       already durable, so a duplicate is complete rather than retryable. */
-    catch (error) { if (error.status !== 409) remaining.push(item); }
+  const done = new Set();
+  for (const item of queue){
+    try {
+      await rest(item.table, {method:'POST', body:item.body, prefer:item.prefer});
+      done.add(item.id);
+    }
+    /* 23505 (unique violation) means the row is already stored, so the write is
+       complete. Everything else stays queued — in particular 23503, a foreign
+       key error raised when the customer's lead row has not been accepted yet;
+       dropping those would lose the cart and order events behind it. */
+    catch (error) { if (error.code === '23505') done.add(item.id); }
   }
-  writeJson(OUTBOX_KEY, remaining);
+  /* Re-read rather than writing `queue` back: a tap during the awaits above
+     appends to the same outbox, and saving a stale snapshot would erase it. */
+  const pending = readJson(OUTBOX_KEY, []);
+  writeJson(OUTBOX_KEY, pending.filter(item => !done.has(item.id)));
   flushing = false;
+  /* Anything queued while we were busy never got its attempt. Retryable
+     failures are deliberately not re-run here, so this cannot spin. */
+  const attempted = new Set(queue.map(item => item.id));
+  if (pending.some(item => !attempted.has(item.id))) flush();
 }
 if (remoteEnabled) addEventListener('online', flush);
 
@@ -187,11 +203,60 @@ export function identify({name, phone, source}){
     return created;
   });
   writeJson(LEAD_KEY, {id: lead.id, name: lead.name, phone: lead.phone, at: lead.at});
-  push('leads', {
-    id: lead.id, name: lead.name, phone: lead.phone, source: lead.source,
-    captured_at: lead.at, last_seen: at, visits: lead.visits, device: lead.device,
+  /* Goes through capture_lead() rather than an insert on the table: phone is
+     the primary key, so a returning scanner would otherwise fail as a duplicate
+     and never bump last_seen or visits. The function is idempotent, which also
+     makes it safe for the outbox to retry. */
+  push('rpc/capture_lead', {
+    p_id: lead.id, p_phone: lead.phone, p_name: lead.name, p_source: lead.source,
+    p_device: lead.device, p_visits: lead.visits, p_last_seen: at,
   });
   return lead;
+}
+
+/* ---------- visits ---------- */
+
+const VISIT_KEY = 'balaji-visitor';
+
+/* Identifies a browser, not a person, so the admin panel can tell one customer
+   refreshing a page from ten separate scans. Worth being blunt about the limit:
+   a web page cannot discover who a visitor is. Name and number exist only once
+   somebody types them into the gate — everything below is the technical
+   context of the visit, which is what makes traffic visible before that. */
+function visitorId(){
+  let id = readJson(VISIT_KEY, null);
+  if (!id){ id = uid(); writeJson(VISIT_KEY, id); }
+  return id;
+}
+
+/* Fires once per page load, whether or not the visitor ever identifies. A scan
+   that bounces off the lead gate still reaches the admin panel, which is the
+   only way to see how many codes were scanned versus how many converted. */
+export function recordVisit({source, product, category, mode} = {}){
+  const lead = getLead();
+  const row = {
+    id: uid(), visitor: visitorId(),
+    phone: lead ? lead.phone : null, name: lead ? lead.name : null,
+    source: source || 'direct',
+    sku: product ? product.sku : null, cat: category || null, mode: mode || 'Retail',
+    path: location.pathname + location.search,
+    referrer: document.referrer || '',
+    device: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    agent: navigator.userAgent.slice(0, 300),
+    lang: navigator.language || '',
+    screen: `${screen.width}x${screen.height}`,
+    at: now(),
+  };
+  commit(db => db.visits.push(row));
+  /* No foreign key to leads: most visits have no phone at all, and one that
+     does must not wait on the lead row to land before it is durable. */
+  push('visits', {
+    id: row.id, visitor_id: row.visitor, phone: row.phone, customer_name: row.name,
+    source: row.source, sku: row.sku, category: row.cat, mode: row.mode,
+    path: row.path, referrer: row.referrer, device: row.device,
+    user_agent: row.agent, language: row.lang, screen: row.screen, occurred_at: row.at,
+  });
+  return row;
 }
 
 /* ---------- activity ---------- */
@@ -290,17 +355,19 @@ const byNewest = field => (a, b) => new Date(b[field]) - new Date(a[field]);
 export async function loadAll(){
   if (remoteEnabled){
     try {
-      const [leads, cart, favourites, orders] = await Promise.all([
+      const [leads, cart, favourites, orders, visits] = await Promise.all([
         rest('leads', {query: '?select=*&order=captured_at.desc&limit=1000'}),
         rest('cart_events', {query: '?select=*&order=occurred_at.desc&limit=2000'}),
         rest('favourite_events', {query: '?select=*&order=occurred_at.desc&limit=2000'}),
         rest('orders', {query: '?select=*&order=placed_at.desc&limit=1000'}),
+        rest('visits', {query: '?select=*&order=occurred_at.desc&limit=2000'}),
       ]);
       const db = {
         leads: leads.map(r => ({id:r.id, name:r.name, phone:r.phone, source:r.source, at:r.captured_at, lastSeen:r.last_seen, visits:r.visits, device:r.device})),
         cart: cart.map(mapEvent('occurred_at')),
         favourites: favourites.map(mapEvent('occurred_at')),
         orders: orders.map(r => ({id:r.id, ref:r.order_ref, phone:r.phone, name:r.customer_name, mode:r.mode, total:r.total, items:r.items || [], at:r.placed_at})),
+        visits: visits.map(r => ({id:r.id, visitor:r.visitor_id, phone:r.phone, name:r.customer_name, source:r.source, sku:r.sku, cat:r.category, mode:r.mode, path:r.path, referrer:r.referrer, device:r.device, agent:r.user_agent, lang:r.language, screen:r.screen, at:r.occurred_at})),
       };
       writeJson(DB_KEY, db);
       return db;
@@ -312,6 +379,7 @@ export async function loadAll(){
     cart: [...db.cart].sort(byNewest('at')),
     favourites: [...db.favourites].sort(byNewest('at')),
     orders: [...db.orders].sort(byNewest('at')),
+    visits: [...db.visits].sort(byNewest('at')),
   };
 }
 
@@ -338,6 +406,7 @@ export function journeyFor(db, phone){
     cart: match(db.cart),
     favourites: match(db.favourites),
     orders: match(db.orders),
+    visits: match(db.visits || []),
   };
 }
 

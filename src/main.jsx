@@ -5,7 +5,8 @@ import QRCode from 'qrcode';
 import {ErrorBoundary} from './ErrorBoundary.jsx';
 import {Search, Heart, ShoppingBag, User, ArrowRight, ChevronLeft, ChevronRight, Headphones, Laptop, Smartphone, Tv, Refrigerator, Wind, Gamepad2, Camera, Router, ShieldCheck, Sparkles, X, MessageCircle, Send, Check, Minus, Plus, QrCode, MapPin, Star, PackageCheck, BadgeIndianRupee, Truck, Menu, SlidersHorizontal, Sun, Moon, TicketPercent, Home, Bot, Copy, Download, Share2, Upload} from 'lucide-react';
 import {LeadGate} from './LeadGate.jsx';
-import {getLead, identify, readCustomerState, loadCustomerState, saveCustomerState, recordCart, recordFavourite, recordOrder} from './services/dataStore.js';
+import {getLead, identify, readCustomerState, loadCustomerState, saveCustomerState, recordCart, recordFavourite, recordOrder, recordVisit} from './services/dataStore.js';
+import {printSpecSheet} from './services/specSheet.js';
 import './styles.css';
 
 /* Admin is a separate concern and a separate audience — keep it out of the
@@ -33,6 +34,15 @@ const productArt=(category,sku,index)=>{const hue=(index*47)%360,hue2=(hue+54)%3
 let catalogIndex=0;
 const fullCatalog=catalogPlan.flatMap(([cat,count,types])=>Array.from({length:count},(_,j)=>{catalogIndex++;const type=types[j%types.length],brand=brandNames[(catalogIndex*3+j)%brandNames.length],sku=`BE-${String(catalogIndex).padStart(4,'0')}`,base=priceBases[cat],price=base+(j%8)*750+(catalogIndex%5)*200;return{id:catalogIndex,name:`${brand} ${type} ${1000+catalogIndex}`,cat,price,old:Math.round(price*1.18/10)*10,rating:Number((3.8+(catalogIndex%12)/10).toFixed(1)),img:productArt(cat,sku,catalogIndex),pos:'center',badge:['New','Popular','Pune pick','Value deal'][catalogIndex%4],desc:`Reliable ${type.toLowerCase()} selected for everyday performance.`,specs:['Genuine product warranty','Pune delivery available','GST invoice eligible'],sku}}));
 const products=catalogPlan.flatMap(([cat])=>fullCatalog.filter(p=>p.cat===cat).slice(0,3)).slice(0,50).map((p,i)=>({...p,img:`/assets/products/product-${String(i+1).padStart(2,'0')}.jpg`,badge:'40% off'}));
+/* A printed label carries a SKU from the whole 500-product catalogue, not just
+   the 50 the grid happens to show, so every code has to resolve against the
+   full list or a shelf tag opens nothing. The displayed entry wins where one
+   exists, which keeps those products on their real photography. */
+const catalogue=[...fullCatalog,...products];
+const bySku=new Map(catalogue.map(p=>[p.sku,p]));
+const byId=new Map(catalogue.map(p=>[p.id,p]));
+const findSku=raw=>bySku.get(String(raw||'').trim().toUpperCase())||null;
+const CATEGORIES=new Set(catalogPlan.map(([c])=>c));
 const heroSlides=[
  {img:'/assets/hero-light-tech.png',eyebrow:"Pune's smarter electronics destination",title:<>Future-ready tech.<br/><em>Closer to home.</em></>,copy:'Genuine electronics, expert guidance and transparent pricing—for your home, business and everything you’re building next.',cta:'Explore personal tech',filter:'All'},
  {img:'/assets/hero-light-kitchen.png',eyebrow:'A smarter kitchen begins here',title:<>Create more.<br/><em>Work less.</em></>,copy:'Mix, juice, bake and cook with dependable appliances selected for everyday Indian homes.',cta:'Shop kitchen appliances',filter:'Kitchen'},
@@ -46,7 +56,7 @@ const salePrice=(p,mode='Retail')=>Math.round(p.price*.6*(mode==='Wholesale'?.84
    rows, so a returning customer's basket is rebuilt from live catalogue data
    rather than a stale price or image captured at add-to-cart time. */
 const bootState=()=>{const l=getLead();return l?readCustomerState(l.phone):null};
-const hydrateCart=rows=>rows.map(r=>{const p=products.find(x=>x.id===r.id);return p?{...p,qty:r.qty||1}:null}).filter(Boolean);
+const hydrateCart=rows=>rows.map(r=>{const p=byId.get(r.id);return p?{...p,qty:r.qty||1}:null}).filter(Boolean);
 const scanSource=()=>{const q=new URLSearchParams(location.search);return q.get('src')||q.get('utm_source')||(document.referrer?'link':'direct')};
 /* Every code the shop prints, shares or reads encodes this one shape: `p` opens
    a product, `cat`/`q` open a filtered view, `mode` opens wholesale pricing, and
@@ -58,14 +68,14 @@ const linkBase=()=>{const site=import.meta.env.VITE_PUBLIC_SITE_URL;try{return s
 const catalogueLink=({product,category,search,mode}={})=>{const u=new URL(linkBase()||location.origin);u.searchParams.set('src','qr');
  if(product)u.searchParams.set('p',product.sku);else{if(category&&category!=='All')u.searchParams.set('cat',category);if(search)u.searchParams.set('q',search)}
  if(MODES.includes(mode)&&mode!=='Retail')u.searchParams.set('mode',mode);return u.toString()};
-const readParams=q=>({product:products.find(p=>p.sku===(q.get('p')||'').trim().toUpperCase())||null,cat:products.some(p=>p.cat===q.get('cat'))?q.get('cat'):'All',q:(q.get('q')||'').slice(0,60),mode:MODES.includes(q.get('mode'))?q.get('mode'):'Retail'});
+const readParams=q=>({product:findSku(q.get('p')),cat:CATEGORIES.has(q.get('cat'))?q.get('cat'):'All',q:(q.get('q')||'').slice(0,60),mode:MODES.includes(q.get('mode'))?q.get('mode'):'Retail'});
 /* Read once at boot: a scan is the only way into this app that carries state,
    so the query it encodes becomes the opening view the moment the gate clears. */
 const boot=readParams(new URLSearchParams(location.search));
 /* A scanned code is untrusted input. Our own codes are applied in-app; anything
    else is shown to the customer to open themselves, never followed for them. */
 const readScan=raw=>{const text=String(raw||'').trim();if(!text)return{kind:'empty'};
- const hit=products.find(p=>p.sku===text.toUpperCase());if(hit)return{kind:'product',product:hit};
+ const hit=findSku(text);if(hit)return{kind:'product',product:hit};
  let u;try{u=new URL(text)}catch{return{kind:'text',text}}
  let base='';try{base=new URL(linkBase()).origin}catch{}
  if(u.origin!==location.origin&&u.origin!==base)return{kind:'foreign',text:u.href};
@@ -79,6 +89,9 @@ function App(){
     but half the scanner apps in a shop will refuse it. */
  const qrLink=useMemo(()=>qrScope==='product'&&selected?catalogueLink({product:selected,mode}):qrScope==='view'?catalogueLink({category,search,mode}):catalogueLink({mode}),[qrScope,selected,category,search,mode]);
  useEffect(()=>{if(!qr)return;let live=true;QRCode.toDataURL(qrLink,{width:320,margin:2,errorCorrectionLevel:'M',color:{dark:'#07111fff',light:'#ffffffff'}}).then(u=>{if(live)setQrUrl(u)}).catch(()=>{if(live)setQrUrl('')});return()=>{live=false}},[qr,qrLink]);
+ /* One row per page load, fired ahead of the gate: a code that gets scanned
+    and abandoned has to be as visible to admin as one that converts. */
+ useEffect(()=>{recordVisit({source:scanSource(),product:boot.product,category:boot.cat!=='All'?boot.cat:null,mode:boot.mode})},[]);
  useEffect(()=>{const t=setInterval(()=>setHero(h=>(h+1)%heroSlides.length),6500);return()=>clearInterval(t)},[]);
  useEffect(()=>{const key=e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();searchRef.current?.focus()}};addEventListener('keydown',key);return()=>removeEventListener('keydown',key)},[]);
  useEffect(()=>setPage(0),[search,category,savedOnly]);
@@ -96,7 +109,7 @@ function App(){
     would log two "add" events for a fast double-tap, because both handlers run
     against the same pre-render snapshot. */
  const savedRef=useRef(saved); useEffect(()=>{savedRef.current=saved},[saved]);
- const toggleSaved=id=>{const removing=savedRef.current.has(id),p=products.find(x=>x.id===id);const next=new Set(savedRef.current);removing?next.delete(id):next.add(id);savedRef.current=next;setSaved(next);setToast(removing?'Removed from saved':'Saved for later');if(lead&&p)recordFavourite({phone:lead.phone,name:lead.name,product:p,action:removing?'remove':'add',price:salePrice(p,mode)})};
+ const toggleSaved=id=>{const removing=savedRef.current.has(id),p=byId.get(id);const next=new Set(savedRef.current);removing?next.delete(id):next.add(id);savedRef.current=next;setSaved(next);setToast(removing?'Removed from saved':'Saved for later');if(lead&&p)recordFavourite({phone:lead.phone,name:lead.name,product:p,action:removing?'remove':'add',price:salePrice(p,mode)})};
  const addCart=p=>{setCart(c=>{const x=c.find(i=>i.id===p.id);return x?c.map(i=>i.id===p.id?{...i,qty:i.qty+1}:i):[...c,{...p,qty:1}]});setToast(`${p.name} added to cart`);if(lead)recordCart({phone:lead.phone,name:lead.name,product:p,action:'add',qty:1,price:salePrice(p,mode)})};
  const placeOrder=method=>{if(lead)setOrder(recordOrder({phone:lead.phone,name:lead.name,mode,method,total:cart.reduce((a,p)=>a+salePrice(p,mode)*p.qty,0),items:cart.map(i=>({...i,linePrice:salePrice(i,mode)}))}));setCheckoutStep(2)};
  /* One of our own codes is applied as a view change rather than a page load, so
@@ -266,7 +279,11 @@ function QrScan({onResult}){
   {/* Shown, never followed: an unknown code is somebody else's link. */}
   {foreign&&<p className="qr-foreign" role="status">That code points somewhere else. Open it yourself if you trust it:<span>{foreign}</span></p>}
  </div>}
-function ProductDetail({p,mode,add,saved,toggle,share}){const price=salePrice(p,mode);return <div className="pdp"><div className="pdp-image"><img src={p.img} alt={p.name} style={{objectPosition:p.pos}}/><span>{p.badge}</span></div><div className="pdp-copy"><small>{p.cat} · SKU BE-{String(p.id).padStart(4,'0')}</small><h2>{p.name}</h2><div className="rating"><Star/> {p.rating} <span>· Verified buyers</span></div><p>{p.desc}</p><ul>{p.specs.map(x=><li key={x}><Check/>{x}</li>)}</ul><div className="pdp-price"><strong>{money(price)}</strong><del>{money(p.old)}</del><span>Inclusive of all taxes</span></div><div className="delivery"><Truck/><div><b>Delivery in Pune</b><small>Tomorrow · Free delivery</small></div></div><div className="pdp-actions"><button className="secondary dark" aria-label="Show QR code for this product" title="Show QR code for this product" onClick={share}><QrCode/></button><button className="secondary dark" onClick={toggle}><Heart fill={saved?'currentColor':'none'}/>{saved?'Saved':'Save'}</button><button className="primary" onClick={add}>Add to cart <ShoppingBag/></button></div></div></div>}
+function ProductDetail({p,mode,add,saved,toggle,share}){const price=salePrice(p,mode);const [sheeting,setSheeting]=useState(false);
+ /* The sheet prints the same link the QR dialog encodes, so a printed page
+    and a scanned code always land on the same product. */
+ const sheet=async()=>{setSheeting(true);try{await printSpecSheet({product:p,mode,price,mrp:p.old,link:catalogueLink({product:p,mode})})}finally{setSheeting(false)}};
+ return <div className="pdp"><div className="pdp-image"><img src={p.img} alt={p.name} style={{objectPosition:p.pos}}/><span>{p.badge}</span></div><div className="pdp-copy"><small>{p.cat} · SKU {p.sku||`BE-${String(p.id).padStart(4,'0')}`}</small><h2>{p.name}</h2><div className="rating"><Star/> {p.rating} <span>· Verified buyers</span></div><p>{p.desc}</p><ul>{p.specs.map(x=><li key={x}><Check/>{x}</li>)}</ul><div className="pdp-price"><strong>{money(price)}</strong><del>{money(p.old)}</del><span>Inclusive of all taxes</span></div><div className="delivery"><Truck/><div><b>Delivery in Pune</b><small>Tomorrow · Free delivery</small></div></div><div className="pdp-actions"><button className="secondary dark" aria-label="Show QR code for this product" title="Show QR code for this product" onClick={share}><QrCode/></button><button className="secondary dark" aria-label="Download this product's spec sheet as PDF" title="Spec sheet (PDF)" onClick={sheet} disabled={sheeting}><Download/></button><button className="secondary dark" onClick={toggle}><Heart fill={saved?'currentColor':'none'}/>{saved?'Saved':'Save'}</button><button className="primary" onClick={add}>Add to cart <ShoppingBag/></button></div></div></div>}
 
 function CartDrawer({cart,setCart,close,mode,checkout,payment}){const [coupon,setCoupon]=useState('');const [couponState,setCouponState]=useState('');const applyCoupon=()=>setCouponState(coupon.trim().toUpperCase()==='AZADI40'?'Sale coupon confirmed':'Use AZADI40');const change=(id,d)=>setCart(c=>c.map(x=>x.id===id?{...x,qty:Math.max(0,x.qty+d)}:x).filter(x=>x.qty));const total=cart.reduce((a,p)=>a+salePrice(p,mode)*p.qty,0);return <motion.aside className="cart-drawer" initial={{x:480}} animate={{x:0}} exit={{x:480}}><div className="cart-head"><div><span>Your cart</span><b>{cart.reduce((a,x)=>a+x.qty,0)} items</b></div><button aria-label="Close cart" onClick={close}><X/></button></div><div className="cart-items">{!cart.length&&<div className="cart-empty"><ShoppingBag/><h3>Your cart is ready for something good.</h3><button onClick={close}>Continue shopping</button></div>}{cart.map(p=><div className="cart-item" key={p.id}><div className="cart-thumb"><img src={p.img} alt={p.name} style={{objectPosition:p.pos}} onError={e=>{e.currentTarget.src='/assets/products/product-01.jpg'}}/></div><div><b>{p.name}</b><small>{money(salePrice(p,mode))}</small><div className="qty"><button aria-label={`Remove one ${p.name}`} onClick={()=>change(p.id,-1)}><Minus/></button><span>{p.qty}</span><button aria-label={`Add one ${p.name}`} onClick={()=>change(p.id,1)}><Plus/></button></div></div></div>)}</div>{!!cart.length&&<div className="cart-summary"><div className="coupon-field"><TicketPercent/><input aria-label="Coupon code" value={coupon} onChange={e=>setCoupon(e.target.value)} placeholder="Coupon code"/><button onClick={applyCoupon}>Apply</button></div>{couponState&&<small className={couponState.startsWith('Sale')?'coupon-ok':''}>{couponState}</small>}<div><span>Independence Day price</span><b>{money(total)}</b></div><small>Delivery and payment options calculated next.</small><button className="primary" onClick={checkout}>Proceed to secure checkout <ArrowRight/></button><button className="payment-link" onClick={payment}>Create a payment link</button></div>}</motion.aside>}
 

@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Lock, Users, ShoppingBag, Heart, PackageCheck, Search, X, Download, LogOut, RefreshCw, ArrowLeft, CloudOff} from 'lucide-react';
+import {Lock, Users, ShoppingBag, Heart, PackageCheck, Search, X, Download, LogOut, RefreshCw, ArrowLeft, CloudOff, Eye} from 'lucide-react';
 import {
   loadAll, subscribe, rollup, activeFavourites, journeyFor, formatPhone,
   toCsv, downloadCsv, backendName, remoteEnabled, pendingWrites,
@@ -16,6 +16,7 @@ const when = iso => {
 };
 
 const SECTIONS = [
+  {id:'visitors', label:'Visitors', Icon:Eye},
   {id:'leads', label:'Leads', Icon:Users},
   {id:'cart', label:'Cart activity', Icon:ShoppingBag},
   {id:'favourites', label:'Favourites', Icon:Heart},
@@ -97,7 +98,14 @@ export default function AdminPanel({onExit}){
 
   const q = query.trim().toLowerCase();
   const hit = r => !q || `${r.name || ''} ${r.phone || ''} ${r.product || ''} ${r.ref || ''}`.toLowerCase().includes(q);
+  /* Most visits have no name or number attached, so the shared predicate would
+     match nothing useful here. Search the technical context instead — a SKU or
+     a source is how you find the scans of one printed label. */
+  const hitVisit = r => !q || `${r.name || ''} ${r.phone || ''} ${r.sku || ''} ${r.source || ''} ${r.cat || ''} ${r.path || ''} ${r.device || ''}`.toLowerCase().includes(q);
+  const visits = db.visits || [];
+  const visitors = new Set(visits.map(r => r.visitor)).size;
   const rows = {
+    visitors: visits.filter(hitVisit),
     leads: db.leads.filter(hit),
     cart: db.cart.filter(hit),
     favourites: favourites.filter(hit),
@@ -105,6 +113,13 @@ export default function AdminPanel({onExit}){
   };
 
   const exports = {
+    visitors: () => [rows.visitors, [
+      {label:'Date/time', get:r => r.at}, {label:'Source', get:r => r.source}, {label:'SKU scanned', get:r => r.sku},
+      {label:'Category', get:r => r.cat}, {label:'Page', get:r => r.path}, {label:'Referrer', get:r => r.referrer},
+      {label:'Device', get:r => r.device}, {label:'Screen', get:r => r.screen}, {label:'Language', get:r => r.lang},
+      {label:'Name', get:r => r.name}, {label:'Phone', get:r => r.phone},
+      {label:'Visitor', get:r => r.visitor}, {label:'User agent', get:r => r.agent},
+    ]],
     leads: () => [rows.leads, [
       {label:'Name', get:r => r.name}, {label:'Phone', get:r => r.phone}, {label:'Captured at', get:r => r.at},
       {label:'Source', get:r => r.source}, {label:'Device', get:r => r.device}, {label:'Visits', get:r => r.visits},
@@ -156,6 +171,7 @@ export default function AdminPanel({onExit}){
     </div>
 
     <div className="admin-stats">
+      <div><b>{visits.length}</b><span>Page visits · {visitors} device{visitors === 1 ? '' : 's'}</span></div>
       <div><b>{db.leads.length}</b><span>Leads captured</span></div>
       <div><b>{db.cart.filter(e => e.action === 'add').length}</b><span>Cart adds</span></div>
       <div><b>{favourites.length}</b><span>Active favourites</span></div>
@@ -172,12 +188,27 @@ export default function AdminPanel({onExit}){
       </div>
       <div className="admin-search">
         <Search/>
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, phone or product" aria-label="Search customer records"/>
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, phone, product or SKU" aria-label="Search customer records"/>
         {query && <button onClick={() => setQuery('')} aria-label="Clear search"><X/></button>}
       </div>
     </div>
 
     <div className="admin-table-wrap">
+      {section === 'visitors' && <table className="admin-table">
+        <thead><tr><th>Date / time</th><th>Source</th><th>Scanned</th><th>Category</th><th>Page</th><th>Device</th><th>Customer</th></tr></thead>
+        <tbody>{rows.visitors.map(r => <tr key={r.id}>
+          <td data-label="Date / time">{when(r.at)}</td>
+          <td data-label="Source"><span className="admin-tag">{r.source}</span></td>
+          <td data-label="Scanned">{r.sku || '—'}</td>
+          <td data-label="Category">{r.cat || '—'}</td>
+          <td data-label="Page" title={r.referrer ? `from ${r.referrer}` : undefined}>{r.path}</td>
+          <td data-label="Device">{r.device} · {r.screen}</td>
+          {/* Anonymous until somebody types their number at the gate; the browser
+              cannot tell us who they are, and nothing here tries to guess. */}
+          <td data-label="Customer">{r.phone ? <>{r.name} {phoneCell(r)}</> : <span className="admin-tag">anonymous</span>}</td>
+        </tr>)}</tbody>
+      </table>}
+
       {section === 'leads' && <table className="admin-table">
         <thead><tr><th>Name</th><th>Phone</th><th>Date / time</th><th>Source</th><th>Visits</th><th>Cart</th><th>Favs</th><th>Orders</th><th>Value</th></tr></thead>
         <tbody>{rows.leads.map(r => {
@@ -271,6 +302,11 @@ function CustomerJourney({db, phone, close}){
         </div>
         <button className="close" onClick={close} aria-label="Close journey"><X/></button>
       </div>
+
+      <section><h3><Eye/> Visits <i>{journey.visits.length}</i></h3>
+        {journey.visits.length ? <ul>{journey.visits.map(r => <li key={r.id}><b>{r.sku || r.path}</b><span>{r.source} · {r.device}</span><time>{when(r.at)}</time></li>)}</ul>
+          : <p className="admin-empty-inline">No visits recorded against this number.</p>}
+      </section>
 
       <section><h3><ShoppingBag/> Cart activity <i>{cart.length}</i></h3>
         {cart.length ? <ul>{cart.map(r => <li key={r.id}><b>{r.product}</b><span>{r.action} ×{r.qty} · {money(r.price)}</span><time>{when(r.at)}</time></li>)}</ul>
