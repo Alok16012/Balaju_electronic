@@ -1,9 +1,9 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Lock, Users, ShoppingBag, Heart, PackageCheck, Search, X, Download, LogOut, RefreshCw, ArrowLeft, CloudOff, Eye} from 'lucide-react';
+import {Lock, Users, ShoppingBag, Heart, PackageCheck, Search, X, Download, LogOut, RefreshCw, ArrowLeft, CloudOff, Eye, Radio} from 'lucide-react';
 import {
   loadAll, subscribe, rollup, activeFavourites, journeyFor, formatPhone,
   toCsv, downloadCsv, backendName, remoteEnabled, pendingWrites,
-  adminSession, adminSignIn, adminSignOut,
+  adminSession, adminSignIn, adminSignOut, startLiveSync,
 } from './services/dataStore.js';
 
 const PASSCODE = import.meta.env.VITE_ADMIN_PASSCODE || 'balaji-admin';
@@ -73,20 +73,26 @@ function AdminLogin({onUnlock}){
 export default function AdminPanel({onExit}){
   const [unlocked, setUnlocked] = useState(() => (remoteEnabled ? Boolean(adminSession()) : sessionStorage.getItem(GUARD_KEY) === '1'));
   const [db, setDb] = useState(null);
-  const [section, setSection] = useState('leads');
+  const [section, setSection] = useState('visitors');
   const [query, setQuery] = useState('');
   const [focus, setFocus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [syncedAt, setSyncedAt] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    try { setDb(await loadAll()); } finally { setLoading(false); }
+    try { setDb(await loadAll()); setSyncedAt(Date.now()); } finally { setLoading(false); }
   }, []);
 
+  /* subscribe() covers this browser and its other tabs; startLiveSync() is what
+     brings in a scan that happened on the customer's phone, which is the only
+     kind that matters once a printed code is out in the shop. */
   useEffect(() => {
     if (!unlocked) return;
     refresh();
-    return subscribe(refresh);
+    const unsubscribe = subscribe(refresh);
+    const stopSync = startLiveSync();
+    return () => { unsubscribe(); stopSync(); };
   }, [unlocked, refresh]);
 
   if (!unlocked) return <AdminLogin onUnlock={() => { sessionStorage.setItem(GUARD_KEY, '1'); setUnlocked(true); }}/>;
@@ -161,6 +167,12 @@ export default function AdminPanel({onExit}){
         <button className="admin-exit" onClick={onExit} aria-label="Back to catalogue"><ArrowLeft/> <span>Catalogue</span></button>
         <h1>Customer intelligence</h1>
         <span className={'admin-backend ' + backendName}>{backendName === 'supabase' ? 'Supabase' : 'Local device'}</span>
+        {/* Gated on a live session, not just on remoteEnabled: once the admin
+            token expires the polling stops, and a chip still saying "Live"
+            would be claiming something that is no longer true. */}
+        {remoteEnabled && adminSession() && <span className="admin-backend live" title="New scans appear on their own — no need to press Refresh">
+          <Radio/> Live{syncedAt ? ` · ${new Date(syncedAt).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})}` : ''}
+        </span>}
         {remoteEnabled && pendingWrites() > 0 && <span className="admin-backend pending"><CloudOff/> {pendingWrites()} queued</span>}
       </div>
       <div className="admin-head-actions">

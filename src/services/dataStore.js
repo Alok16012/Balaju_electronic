@@ -173,6 +173,64 @@ if (remoteEnabled) addEventListener('online', flush);
 
 export const pendingWrites = () => readJson(OUTBOX_KEY, []).length;
 
+/* ---------- live sync ----------
+
+   subscribe() above only hears about writes made by this browser. A customer
+   scanning the QR code on their own phone touches Supabase and nothing else, so
+   the panel would sit on stale numbers until somebody pressed Refresh. Poll a
+   cheap signature instead of refetching the tables: the stamp on the newest row
+   of each, which moves on an insert and on a repeat scan bumping last_seen.
+   Only the reload that follows an actual change costs anything.
+
+   A deletion made straight in the Supabase dashboard does not move any of these
+   stamps, so it lands on the next manual Refresh rather than by itself. */
+
+const PULSE = [
+  ['leads', 'last_seen'], ['cart_events', 'occurred_at'],
+  ['favourite_events', 'occurred_at'], ['orders', 'placed_at'],
+  ['visits', 'occurred_at'],
+];
+
+async function remotePulse(){
+  const rows = await Promise.all(PULSE.map(([table, stamp]) =>
+    rest(table, {query: `?select=${stamp}&order=${stamp}.desc&limit=1`})));
+  return rows.map((r, i) => (r && r[0] ? r[0][PULSE[i][1]] : '-')).join('|');
+}
+
+/* Runs while the admin panel is open. Polling stops on a hidden tab and resumes
+   on focus, so a shop screen left open all day does not spend the project's
+   request quota watching an empty catalogue. */
+export function startLiveSync({interval = 20000} = {}){
+  if (!remoteEnabled) return () => {};
+  let stopped = false, busy = false, last = null;
+
+  const tick = async () => {
+    if (stopped || busy || document.hidden || !navigator.onLine || !adminSession()) return;
+    busy = true;
+    try {
+      const pulse = await remotePulse();
+      /* The first tick only records a baseline: the panel has just loaded. */
+      if (last !== null && pulse !== last) emit();
+      last = pulse;
+    }
+    catch { /* signed out, offline or rate limited — the next tick retries */ }
+    finally { busy = false; }
+  };
+
+  const wake = () => { if (!document.hidden) tick(); };
+  const timer = setInterval(tick, interval);
+  addEventListener('visibilitychange', wake);
+  addEventListener('online', wake);
+  tick();
+
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+    removeEventListener('visibilitychange', wake);
+    removeEventListener('online', wake);
+  };
+}
+
 /* ---------- current session lead ---------- */
 
 export const getLead = () => readJson(LEAD_KEY, null);
